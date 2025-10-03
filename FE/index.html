@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Waiting Room</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <style>
+      html, body { height: 100%; margin: 0; background: #ffffff; color:#0a0a0a; overflow: hidden; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+      .wrap { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr auto; }
+      header { display:flex; align-items:center; gap:10px; padding:18px 24px; font-weight:800; font-size:22px; }
+      header .logo { width:14px; height:14px; background:#a78bfa; border-radius:4px; box-shadow: 0 0 0 6px rgba(167,139,250,0.25); margin-right:8px; }
+      main { display:grid; place-items:center; }
+      .hero { text-align:center; max-width: 960px; margin: 0 auto; padding: 40px 5vw; display:grid; gap: 8px; }
+      .title { font-size: clamp(36px, 6vw, 72px); font-weight: 800; letter-spacing: -0.02em; }
+      .sub { margin-top: 16px; color:#404040; font-size: clamp(16px, 2.2vw, 22px); line-height: 1.6; }
+      .timer { margin-top: 40px; font-weight: 800; letter-spacing: 0.03em; color:#111827; font-size: clamp(14px, 5vw, 48px); line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display:block; }
+      .progress-wrap { margin-top: 36px; padding: 0 5vw; }
+      .bar { height:8px; background:#e5e7eb; border-radius:999px; position:relative; }
+      .bar > i { position:absolute; left:0; top:0; bottom:0; width:40px; border-radius:999px; background:#a78bfa; }
+      .sync { text-align:center; color:#6b7280; margin-top: 10px; }
+      #canvas { position: fixed; inset:0; }
+
+      .dot { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #22d3ee; transform: translate(-50%, -50%); pointer-events: none; }
+      .peer { background: #a78bfa; opacity: 0.85; }
+      .bubble { position: absolute; transform: translate(-50%, -100%); color: #e5e7eb; background: rgba(2,6,23,0.85); border: 1px solid #334155; padding: 4px 8px; border-radius: 10px; font: 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; display: inline-block; width: auto; max-width: 30vw; min-width: 0; white-space: normal; pointer-events: none; overflow: visible; }
+      .bubble span { display: inline; word-wrap: break-word; word-break: break-word; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+      .bubble.hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <span class="logo"></span>
+        The Waiting Room
+      </header>
+      <main>
+        <section class="hero">
+          <div class="title">The Waiting Room</div>
+          <div class="sub">An event of significance is on the horizon. Join others in collective anticipation. Your presence is noted.</div>
+          <div id="presence" class="sub" style="margin-top:8px; font-size:16px; color:#6b7280;">—</div>
+          <div id="you" class="sub" style="margin-top:4px; font-size:14px; color:#6b7280;">—</div>
+          <div id="refresh-warning" class="sub" style="margin-top:6px; font-size:13px; color:#9ca3af;">Refreshing the page will send you to the back of the line.</div>
+          <div id="countdown" class="timer">00 : 00 : 00 : 00</div>
+          <div class="progress-wrap">
+            <div class="bar"><i id="progress"></i></div>
+            <div class="sync">Synchronization in progress…</div>
+          </div>
+        </section>
+      </main>
+      <div id="canvas"></div>
+      <div id="post-refresh" style="position:fixed; left:50%; top:16px; transform:translateX(-50%); background:#111827; color:#e5e7eb; border:1px solid #374151; padding:8px 12px; border-radius:8px; font-size:14px; display:none; z-index: 10; text-align: center">
+        You refreshed the page. You have been moved to the back of the line.
+      </div>
+    </div>
+
+    <script src="index.js"></script>
+  </body>
+  </html>
