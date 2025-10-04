@@ -1,28 +1,21 @@
 (function() {
   const canvas = document.getElementById('canvas');
-  const BUBBLE_WIDTH = 300;
-  const BUBBLE_EDGE_PAD = 16;
+  const BUBBLE_EDGE_PAD = 8;
   const BUBBLE_EDGE_PAD_Y = 8;
-  const DOT_EDGE_PAD = 8;
-  const DOT_RADIUS = 4;
 
-  const defaultWs = 'ws://localhost:3001/ws';
-  const search = new URLSearchParams(location.search);
-  const wsParam = search.get('ws');
+  const defaultWs = 'ws://localhost:3001/';
   // Generate or reuse a stable uid for this browser
   let uid = localStorage.getItem('twroom_uid');
   if (!uid) {
     uid = Date.now() + Math.random().toString(36).slice(2, 10);
     try { localStorage.setItem('twroom_uid', uid); } catch { }
   }
-  const wsBase = wsParam || defaultWs;
   // Per-tab session id for detecting post-refresh notice
   let sid = sessionStorage.getItem('twroom_sid');
   if (!sid) {
     sid = Date.now() + Math.random().toString(36).slice(2, 10);
-    try { sessionStorage.setItem('twroom_sid', sid); } catch {}
+    try { sessionStorage.setItem('twroom_sid', sid); } catch { }
   }
-  const wsUrl = (wsBase.includes('?') ? `${wsBase}&` : `${wsBase}?`) + `uid=${encodeURIComponent(uid)}&sid=${encodeURIComponent(sid)}`;
 
   let ws;
   let myDot = document.createElement('div');
@@ -31,29 +24,48 @@
   let myBubble = document.createElement('div');
   myBubble.className = 'bubble hidden';
   canvas.appendChild(myBubble);
+
   let lastPos = { x: 0.5, y: 0.5 };
 
   function connect() {
-    ws = new WebSocket(wsUrl);
+    ws = new WebSocket(defaultWs);
     ws.addEventListener('open', () => { });
     ws.addEventListener('close', () => { retry(); });
     ws.addEventListener('error', () => { });
     ws.addEventListener('message', (ev) => {
       try {
         const msg = JSON.parse(ev.data);
-        console.log('[WS]', msg);
+        console.info('[WS]', msg?.type, msg);
         if (msg.type === 'peer-mousemove') {
           showPeer(msg.x, msg.y);
         } else if (msg.type === 'peer-typing') {
           showPeerTyping(msg.x, msg.y, msg.text);
         } else if (msg.type === 'presence') {
-          if (window.updatePresence) window.updatePresence(msg.count);
+          const presenceEl = document.getElementById('presence');
+          if (presenceEl) {
+            function plural(n) { return n === 1 ? 'person' : 'people'; }
+            presenceEl.textContent = `${msg.count} ${plural(msg.count)} here now`;
+          }
         } else if (msg.type === 'welcome') {
-          if (window.setYouNumber) window.setYouNumber(msg.you);
-          if (window.updatePresence) window.updatePresence(msg.count);
+          const youEl = document.getElementById('you')
+          if (youEl) {
+            youEl.textContent = `You are #${msg.you}`;
+          }
+          const presenceEl = document.getElementById('presence');
+          if (presenceEl) {
+            function plural(n) { return n === 1 ? 'person' : 'people'; }
+            presenceEl.textContent = `${msg.count} ${plural(msg.count)} here now`;
+          }
         } else if (msg.type === 'rank') {
-          if (window.setYouNumber) window.setYouNumber(msg.you);
-          if (window.updatePresence && typeof msg.count === 'number') window.updatePresence(msg.count);
+          const youEl = document.getElementById('you')
+          if (youEl) {
+            youEl.textContent = `You are #${msg.you}`;
+          }
+          const presenceEl = document.getElementById('presence');
+          if (presenceEl) {
+            function plural(n) { return n === 1 ? 'person' : 'people'; }
+            presenceEl.textContent = `${msg.count} ${plural(msg.count)} here now`;
+          }
         }
       } catch { }
     });
@@ -70,16 +82,7 @@
     peerDot.style.left = (x * rect.width) + 'px';
     peerDot.style.top = (y * rect.height) + 'px';
     if (peerBubble) {
-      const px = x * rect.width;
-      const left = Math.min(rect.width - BUBBLE_WIDTH / 2 - BUBBLE_EDGE_PAD, Math.max(BUBBLE_WIDTH / 2 + BUBBLE_EDGE_PAD, px));
-      peerBubble.style.left = left + 'px';
-      const py = y * rect.height;
-      const h = peerBubble.offsetHeight || 20;
-      const desiredTop = py - 10;
-      const minTop = BUBBLE_EDGE_PAD_Y + h;
-      const maxTop = rect.height - BUBBLE_EDGE_PAD_Y;
-      const top = Math.min(maxTop, Math.max(minTop, desiredTop));
-      peerBubble.style.top = top + 'px';
+      showPeerTyping(x, y, peerBubble.textContent);
     }
   }
 
@@ -94,9 +97,15 @@
     const rect = canvas.getBoundingClientRect();
     const span = peerBubble.firstChild;
     span.textContent = String(text || '');
+    peerBubble.style.transform = 'translate(-50%, -100%)';
     const px = x * rect.width;
-    const left = Math.min(rect.width - BUBBLE_WIDTH / 2 - BUBBLE_EDGE_PAD, Math.max(BUBBLE_WIDTH / 2 + BUBBLE_EDGE_PAD, px));
-    peerBubble.style.left = left + 'px';
+    const bw = peerBubble.offsetWidth;
+    const cw = rect.width;
+    const pad = BUBBLE_EDGE_PAD;
+    const minCenter = bw / 2 + pad;
+    const maxCenter = cw - bw / 2 - pad;
+    const center = Math.min(maxCenter, Math.max(minCenter, px));
+    peerBubble.style.left = center + 'px';
     const pyPeer = y * rect.height;
     const hPeer = peerBubble.offsetHeight || 20;
     const desiredTopPeer = pyPeer - 10;
@@ -111,16 +120,13 @@
 
   canvas.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
-    const minX = DOT_EDGE_PAD + DOT_RADIUS, maxX = rect.width - (DOT_EDGE_PAD + DOT_RADIUS);
-    const minY = DOT_EDGE_PAD + DOT_RADIUS, maxY = rect.height - (DOT_EDGE_PAD + DOT_RADIUS);
     const rawX = e.clientX - rect.left;
     const rawY = e.clientY - rect.top;
-    const pxX = Math.min(maxX, Math.max(minX, rawX));
-    const pxY = Math.min(maxY, Math.max(minY, rawY));
-    const x = pxX / rect.width;
-    const y = pxY / rect.height;
-    myDot.style.left = pxX + 'px';
-    myDot.style.top = pxY + 'px';
+    myDot.style.left = rawX + 'px';
+    myDot.style.top = rawY + 'px';
+    const x = rawX / rect.width;
+    const y = rawY / rect.height;
+    // this is used to set initial locaiton for a bubble
     lastPos = { x, y };
     if (typingText && typingText.length > 0) {
       updateMyBubble(x, y);
@@ -147,8 +153,13 @@
     span.textContent = typingText;
     const rect = canvas.getBoundingClientRect();
     const px = x * rect.width;
-    const left = Math.min(rect.width - BUBBLE_WIDTH / 2 - BUBBLE_EDGE_PAD, Math.max(BUBBLE_WIDTH / 2 + BUBBLE_EDGE_PAD, px));
-    myBubble.style.left = left + 'px';
+    const bw = myBubble.offsetWidth;
+    const cw = rect.width;
+    const pad = BUBBLE_EDGE_PAD;
+    const minCenter = bw / 2 + pad;
+    const maxCenter = cw - bw / 2 - pad;
+    const center = Math.min(maxCenter, Math.max(minCenter, px));
+    myBubble.style.left = center + 'px';
     const pySelf = y * rect.height;
     const hSelf = myBubble.offsetHeight || 20;
     const desiredTopSelf = pySelf - 10;
@@ -193,14 +204,6 @@
 
   setInterval(cleanupExpired, 500);
 
-  requestAnimationFrame(() => {
-    const rect = canvas.getBoundingClientRect();
-    const pxX = Math.min(rect.width - (DOT_EDGE_PAD + DOT_RADIUS), Math.max(DOT_EDGE_PAD + DOT_RADIUS, lastPos.x * rect.width));
-    const pxY = Math.min(rect.height - (DOT_EDGE_PAD + DOT_RADIUS), Math.max(DOT_EDGE_PAD + DOT_RADIUS, lastPos.y * rect.height));
-    myDot.style.left = pxX + 'px';
-    myDot.style.top = pxY + 'px';
-  });
-
   connect();
 })();
 
@@ -243,17 +246,8 @@
   setInterval(tick, 1000);
 })();
 
-(function() {
-  const el = document.getElementById('presence');
-  if (!el) return;
-  function plural(n) { return n === 1 ? 'person' : 'people'; }
-  window.updatePresence = function(count) {
-    el.textContent = `${count} ${plural(count)} here now`;
-  };
-})();
-
 // Post-refresh notice logic
-(function(){
+(function() {
   const KEY = 'twroom_refreshed_at';
   const SHOW_MS = 5000;
   const now = Date.now();
@@ -268,15 +262,7 @@
     }
     // Mark unload so a refresh triggers the notice
     window.addEventListener('beforeunload', () => {
-      try { sessionStorage.setItem(KEY, String(Date.now())); } catch {}
+      try { sessionStorage.setItem(KEY, String(Date.now())); } catch { }
     });
-  } catch {}
-})();
-
-(function() {
-  const el = document.getElementById('you');
-  if (!el) return;
-  window.setYouNumber = function(n) {
-    el.textContent = `You are #${n}`;
-  };
+  } catch { }
 })();

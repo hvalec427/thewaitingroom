@@ -12,7 +12,7 @@ app.get('/health', (_req, res) => {
 });
 
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server, path: '/ws' });
+const wss = new WebSocketServer({ server, path: '/' });
 
 // Legacy incremental index retained for compatibility (not used for rank)
 let nextJoinIndex = 1;
@@ -34,10 +34,10 @@ const computeRank = (u) => {
   const ahead = active.filter(x => (firstSeenByUid.get(x) || 0) < meTs).length;
   return Math.min(ahead + 1, active.length);
 };
-const safeSend = (sock, obj) => { if (sock && sock.readyState === sock.OPEN) { try { sock.send(JSON.stringify(obj)); } catch {} } };
+const safeSend = (sock, obj) => { if (sock && sock.readyState === sock.OPEN) { try { sock.send(JSON.stringify(obj)); } catch { } } };
 const broadcast = (obj) => {
   const payload = JSON.stringify(obj);
-  wss.clients.forEach(c => { if (c.readyState === c.OPEN) { try { c.send(payload); } catch {} } });
+  wss.clients.forEach(c => { if (c.readyState === c.OPEN) { try { c.send(payload); } catch { } } });
 };
 
 // Track connections and simple broadcast of mouse events
@@ -124,5 +124,5 @@ wss.on('connection', (ws, req) => {
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`BE listening on http://localhost:${PORT}`);
-  console.log(`WebSocket on ws://localhost:${PORT}/ws`);
+  console.log(`WebSocket on ws://localhost:${PORT}/`);
 });
