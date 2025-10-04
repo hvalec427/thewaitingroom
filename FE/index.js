@@ -37,9 +37,13 @@
         const msg = JSON.parse(ev.data);
         console.info('[WS]', msg?.type, msg);
         if (msg.type === 'peer-mousemove') {
-          showPeer(msg.x, msg.y);
+          const id = msg.id || msg.uid || 'peer';
+          markSeen(id);
+          showPeer(id, msg.x, msg.y);
         } else if (msg.type === 'peer-typing') {
-          showPeerTyping(msg.x, msg.y, msg.text);
+          const id = msg.id || msg.uid || 'peer';
+          markSeen(id);
+          showPeerTyping(id, msg.x, msg.y, msg.text);
         } else if (msg.type === 'presence') {
           const presenceEl = document.getElementById('presence');
           if (presenceEl) {
@@ -71,50 +75,60 @@
     });
   }
 
-  let peerDot, peerBubble;
-  function showPeer(x, y) {
-    if (!peerDot) {
-      peerDot = document.createElement('div');
-      peerDot.className = 'dot peer';
-      canvas.appendChild(peerDot);
+  const peers = new Map();
+  function ensurePeer(id) {
+    let p = peers.get(id);
+    if (!p) {
+      const dot = document.createElement('div');
+      dot.className = 'dot peer';
+      canvas.appendChild(dot);
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble hidden';
+      bubble.appendChild(document.createElement('span'));
+      canvas.appendChild(bubble);
+      p = { dot, bubble };
+      peers.set(id, p);
     }
+    return p;
+  }
+  function showPeer(id, x, y) {
+    const { dot, bubble } = ensurePeer(id);
     const rect = canvas.getBoundingClientRect();
-    peerDot.style.left = (x * rect.width) + 'px';
-    peerDot.style.top = (y * rect.height) + 'px';
-    if (peerBubble) {
-      showPeerTyping(x, y, peerBubble.textContent);
+    dot.style.left = (x * rect.width) + 'px';
+    dot.style.top = (y * rect.height) + 'px';
+    if (bubble && !bubble.classList.contains('hidden')) {
+      const text = bubble.firstChild.textContent || '';
+      showPeerTyping(id, x, y, text);
     }
   }
 
-  function showPeerTyping(x, y, text) {
-    if (!peerBubble) {
-      peerBubble = document.createElement('div');
-      peerBubble.className = 'bubble';
-      const span = document.createElement('span');
-      peerBubble.appendChild(span);
-      canvas.appendChild(peerBubble);
-    }
+  function showPeerTyping(id, x, y, text) {
+    const { bubble } = ensurePeer(id);
     const rect = canvas.getBoundingClientRect();
-    const span = peerBubble.firstChild;
+    const span = bubble.firstChild;
     span.textContent = String(text || '');
-    peerBubble.style.transform = 'translate(-50%, -100%)';
+    bubble.classList.toggle('hidden', !text);
+    if (!text) return;
+    bubble.style.transform = 'translate(-50%, -100%)';
     const px = x * rect.width;
-    const bw = peerBubble.offsetWidth;
+    const bw = bubble.offsetWidth;
     const cw = rect.width;
     const pad = BUBBLE_EDGE_PAD;
     const minCenter = bw / 2 + pad;
     const maxCenter = cw - bw / 2 - pad;
     const center = Math.min(maxCenter, Math.max(minCenter, px));
-    peerBubble.style.left = center + 'px';
+    bubble.style.left = center + 'px';
     const pyPeer = y * rect.height;
-    const hPeer = peerBubble.offsetHeight || 20;
+    const hPeer = bubble.offsetHeight || 20;
     const desiredTopPeer = pyPeer - 10;
     const minTopPeer = BUBBLE_EDGE_PAD_Y + hPeer;
     const maxTopPeer = rect.height - BUBBLE_EDGE_PAD_Y;
     const topPeer = Math.min(maxTopPeer, Math.max(minTopPeer, desiredTopPeer));
-    peerBubble.style.top = topPeer + 'px';
-    peerBubble.classList.toggle('hidden', !text);
+    bubble.style.top = topPeer + 'px';
   }
+
+  const peerLastSeen = new Map();
+  function markSeen(id) { peerLastSeen.set(id, Date.now()); }
 
   function retry() { setTimeout(connect, 1000); }
 
@@ -126,7 +140,6 @@
     myDot.style.top = rawY + 'px';
     const x = rawX / rect.width;
     const y = rawY / rect.height;
-    // this is used to set initial locaiton for a bubble
     lastPos = { x, y };
     if (typingText && typingText.length > 0) {
       updateMyBubble(x, y);
@@ -207,7 +220,24 @@
   connect();
 })();
 
-// Countdown + progress
+(function() {
+  const PEER_TTL_MS = 15000;
+  setInterval(() => {
+    if (typeof peers === 'undefined') return;
+    const now = Date.now();
+    if (typeof peerLastSeen === 'undefined') return;
+    for (const [id, seen] of peerLastSeen.entries()) {
+      if (now - seen > PEER_TTL_MS) {
+        const p = peers.get(id);
+        if (p) {
+          p.dot.style.display = 'none';
+          p.bubble.classList.add('hidden');
+        }
+      }
+    }
+  }, 3000);
+})();
+
 (function() {
   const el = document.getElementById('countdown');
   const prog = document.getElementById('progress');
@@ -246,7 +276,6 @@
   setInterval(tick, 1000);
 })();
 
-// Post-refresh notice logic
 (function() {
   const KEY = 'twroom_refreshed_at';
   const SHOW_MS = 5000;
@@ -260,7 +289,6 @@
         setTimeout(() => { el.style.display = 'none'; }, 4000);
       }
     }
-    // Mark unload so a refresh triggers the notice
     window.addEventListener('beforeunload', () => {
       try { sessionStorage.setItem(KEY, String(Date.now())); } catch { }
     });

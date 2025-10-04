@@ -91,11 +91,11 @@ wss.on('connection', (ws, req) => {
       // Optionally broadcast to others
       wss.clients.forEach((clientWs) => {
         if (clientWs !== ws && clientWs.readyState === clientWs.OPEN) {
-          clientWs.send(JSON.stringify({ type: 'peer-mousemove', x: msg.x, y: msg.y }));
+          clientWs.send(JSON.stringify({ type: 'peer-mousemove', id: uid, x: msg.x, y: msg.y }));
         }
       });
     } else if (msg && msg.type === 'typing') {
-      const payload = { type: 'peer-typing', x: msg.x, y: msg.y, text: String(msg.text || '') };
+      const payload = { type: 'peer-typing', id: uid, x: msg.x, y: msg.y, text: String(msg.text || '') };
       wss.clients.forEach((clientWs) => {
         if (clientWs !== ws && clientWs.readyState === clientWs.OPEN) {
           clientWs.send(JSON.stringify(payload));
