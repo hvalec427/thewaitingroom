@@ -43,7 +43,7 @@ const broadcast = (obj) => {
 // Track connections and simple broadcast of mouse events
 wss.on('connection', (ws, req) => {
   const client = req.socket.remoteAddress;
-  console.log('WS connected:', client);
+  console.info('WS connected:', client);
 
   // Parse a client-provided stable id from query (?uid=...) and session id (?sid=...)
   const url = new URL(req.url, 'http://localhost');
@@ -76,7 +76,17 @@ wss.on('connection', (ws, req) => {
       safeSend(c, { type: 'rank', you: computeRank(cu), count });
     });
   };
+
   broadcastRanks();
+
+  const removePeer = (id) => {
+    wss.clients.forEach(c => {
+      const cu = c._id;
+      if (c.readyState !== c.OPEN || !cu) return;
+      safeSend(c, { type: 'peer-disconnect', id });
+    });
+  };
+
 
   ws.on('message', (data) => {
     let msg;
@@ -90,22 +100,20 @@ wss.on('connection', (ws, req) => {
     if (msg && msg.type === 'mousemove') {
       // Optionally broadcast to others
       wss.clients.forEach((clientWs) => {
-        if (clientWs !== ws && clientWs.readyState === clientWs.OPEN) {
-          clientWs.send(JSON.stringify({ type: 'peer-mousemove', id: uid, x: msg.x, y: msg.y }));
-        }
+        if (clientWs === ws) return;
+        safeSend(clientWs, { type: 'peer-mousemove', id: uid, x: msg.x, y: msg.y });
       });
     } else if (msg && msg.type === 'typing') {
       const payload = { type: 'peer-typing', id: uid, x: msg.x, y: msg.y, text: String(msg.text || '') };
       wss.clients.forEach((clientWs) => {
-        if (clientWs !== ws && clientWs.readyState === clientWs.OPEN) {
-          clientWs.send(JSON.stringify(payload));
-        }
+        if (clientWs === ws) return;
+        safeSend(clientWs, payload);
       });
     }
   });
 
   ws.on('close', () => {
-    console.log('WS closed:', client);
+    console.info('WS closed:', client);
     joinIndexBySocket.delete(ws);
     // Remove socket from uid set; keep firstSeen for future sessions
     const uset = socketsByUid.get(uid);
@@ -117,12 +125,15 @@ wss.on('connection', (ws, req) => {
     }
     broadcastPresence();
     // Broadcast updated ranks after disconnect
-    setTimeout(() => broadcastRanks(), 0);
+    setTimeout(() => {
+      broadcastRanks();
+      removePeer(uid);
+    }, 0);
   });
 });
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`BE listening on http://localhost:${PORT}`);
-  console.log(`WebSocket on ws://localhost:${PORT}/`);
+  console.info(`BE listening on http://localhost:${PORT}`);
+  console.info(`WebSocket on ws://localhost:${PORT}/`);
 });

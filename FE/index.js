@@ -37,13 +37,10 @@
         const msg = JSON.parse(ev.data);
         console.info('[WS]', msg?.type, msg);
         if (msg.type === 'peer-mousemove') {
-          const id = msg.id || msg.uid || 'peer';
-          markSeen(id);
-          showPeer(id, msg.x, msg.y);
+
+          showPeer(msg.id, msg.x, msg.y);
         } else if (msg.type === 'peer-typing') {
-          const id = msg.id || msg.uid || 'peer';
-          markSeen(id);
-          showPeerTyping(id, msg.x, msg.y, msg.text);
+          showPeerTyping(msg.id, msg.x, msg.y, msg.text);
         } else if (msg.type === 'presence') {
           const presenceEl = document.getElementById('presence');
           if (presenceEl) {
@@ -60,6 +57,8 @@
             function plural(n) { return n === 1 ? 'person' : 'people'; }
             presenceEl.textContent = `${msg.count} ${plural(msg.count)} here now`;
           }
+        } else if (msg.type === 'peer-disconnect') {
+          removePeer(msg.id);
         } else if (msg.type === 'rank') {
           const youEl = document.getElementById('you')
           if (youEl) {
@@ -76,6 +75,14 @@
   }
 
   const peers = new Map();
+  function removePeer(id) {
+    const p = peers.get(id);
+    if (p) {
+      if (p.dot && p.dot.parentNode) p.dot.parentNode.removeChild(p.dot);
+      if (p.bubble && p.bubble.parentNode) p.bubble.parentNode.removeChild(p.bubble);
+    }
+    peers.delete(id);
+  }
   function ensurePeer(id) {
     let p = peers.get(id);
     if (!p) {
@@ -103,6 +110,8 @@
   }
 
   function showPeerTyping(id, x, y, text) {
+    // If no text and peer not yet known, avoid creating DOM nodes
+    if (!text && !peers.has(id)) return;
     const { bubble } = ensurePeer(id);
     const rect = canvas.getBoundingClientRect();
     const span = bubble.firstChild;
@@ -126,9 +135,6 @@
     const topPeer = Math.min(maxTopPeer, Math.max(minTopPeer, desiredTopPeer));
     bubble.style.top = topPeer + 'px';
   }
-
-  const peerLastSeen = new Map();
-  function markSeen(id) { peerLastSeen.set(id, Date.now()); }
 
   function retry() { setTimeout(connect, 1000); }
 
@@ -182,15 +188,7 @@
     myBubble.style.top = topSelf + 'px';
     myBubble.classList.toggle('hidden', typingText.length === 0);
   }
-  function cleanupExpired() {
-    const now = Date.now();
-    if (typingText && now - lastTypedAt >= INACTIVITY_TTL_MS) {
-      typedBuffer = [];
-      typingText = '';
-      updateMyBubble(lastPos.x, lastPos.y);
-      sendTyping(lastPos.x, lastPos.y);
-    }
-  }
+
   window.addEventListener('keydown', (e) => {
     if (e.key.length === 1 && !(e.ctrlKey || e.metaKey)) {
       e.preventDefault();
@@ -215,27 +213,19 @@
     sendTyping(lastPos.x, lastPos.y);
   });
 
+  function cleanupExpired() {
+    const now = Date.now();
+    if (typingText && now - lastTypedAt >= INACTIVITY_TTL_MS) {
+      typedBuffer = [];
+      typingText = '';
+      updateMyBubble(lastPos.x, lastPos.y);
+      sendTyping(lastPos.x, lastPos.y);
+    }
+  }
+
   setInterval(cleanupExpired, 500);
 
   connect();
-})();
-
-(function() {
-  const PEER_TTL_MS = 15000;
-  setInterval(() => {
-    if (typeof peers === 'undefined') return;
-    const now = Date.now();
-    if (typeof peerLastSeen === 'undefined') return;
-    for (const [id, seen] of peerLastSeen.entries()) {
-      if (now - seen > PEER_TTL_MS) {
-        const p = peers.get(id);
-        if (p) {
-          p.dot.style.display = 'none';
-          p.bubble.classList.add('hidden');
-        }
-      }
-    }
-  }, 3000);
 })();
 
 (function() {
