@@ -1,4 +1,4 @@
-(function() {
+(function () {
   const canvas = document.getElementById('canvas');
   const BUBBLE_EDGE_PAD = 8;
   const BUBBLE_EDGE_PAD_Y = 8;
@@ -35,7 +35,6 @@
     ws.addEventListener('message', (ev) => {
       try {
         const msg = JSON.parse(ev.data);
-        console.info('[WS]', msg?.type, msg);
         if (msg.type === 'peer-mousemove') {
 
           showPeer(msg.id, msg.x, msg.y);
@@ -228,17 +227,50 @@
   connect();
 })();
 
-(function() {
+(function () {
   const el = document.getElementById('countdown');
   const prog = document.getElementById('progress');
   if (!el || !prog) return;
   const tz = 'Europe/Ljubljana';
-  const target = new Date(Date.UTC(2026, 0, 22, 14, 44));
-  const start = new Date(Date.UTC(2025, 0, 22, 14, 44));
-  const totalMs = target - start;
+
+  let target = null;
+  let start = null;
+  let totalMs = 0;
+  let countdownInitialized = false;
+
+  // Fetch countdown configuration from backend
+  async function initializeCountdown() {
+    try {
+      const response = await fetch('http://localhost:3001/celebration-date');
+      const data = await response.json();
+
+      // Check if we should redirect immediately
+      if (data.redirectNow && data.redirectTo) {
+        window.location.href = data.redirectTo;
+        return;
+      }
+
+      target = new Date(data.targetTimestamp);
+      start = new Date(data.startTimestamp);
+      totalMs = target - start;
+      countdownInitialized = true;
+    } catch (error) {
+      console.warn('Failed to load countdown configuration:', error);
+
+      countdownInitialized = false;
+    }
+  }
+
+  // Initialize countdown
+  initializeCountdown();
 
   function pad(n) { return String(n).padStart(2, '0'); }
   function tick() {
+    if (!countdownInitialized || !target) {
+      el.innerHTML = '<span class="seg">--</span><span class="colon">\u00A0:\u00A0</span><span class="seg">--</span><span class="colon">\u00A0:\u00A0</span><span class="seg">--</span><span class="colon">\u00A0:\u00A0</span><span class="seg">--</span>';
+      return;
+    }
+
     const now = new Date();
     const nowTz = new Date(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(now).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$1-$2T$4:$5:$6Z'));
     const targetTz = new Date(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(target).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$1-$2T$4:$5:$6Z'));
@@ -261,12 +293,20 @@
     const elapsed = Math.max(0, totalMs - diff);
     const pct = totalMs > 0 ? Math.min(1, elapsed / totalMs) : 1;
     prog.style.width = `${Math.max(16, pct * (prog.parentElement.clientWidth - 0))}px`;
+
+    // Check if countdown reached zero (all values are 0)
+    if (d === 0 && h === 0 && m === 0 && s === 0 && diff === 0) {
+      // Trigger countdown completion
+      if (window.triggerCountdownComplete) {
+        window.triggerCountdownComplete();
+      }
+    }
   }
   tick();
   setInterval(tick, 1000);
 })();
 
-(function() {
+(function () {
   const KEY = 'twroom_refreshed_at';
   const SHOW_MS = 5000;
   const now = Date.now();
@@ -283,4 +323,58 @@
       try { sessionStorage.setItem(KEY, String(Date.now())); } catch { }
     });
   } catch { }
+})();
+
+// Countdown completion check - redirect when timer reaches zero
+(function () {
+  let countdownFinished = false;
+
+  async function triggerCountdownComplete() {
+    if (countdownFinished) return; // Prevent multiple calls
+    countdownFinished = true;
+
+    try {
+      const response = await fetch('http://localhost:3001/celebration');
+      const data = await response.json();
+
+      if (data.redirect && data.redirectTo) {
+        // Small delay for dramatic effect
+        setTimeout(() => {
+          window.location.href = data.redirectTo;
+        }, 1000);
+      }
+    } catch (error) {
+    }
+  }
+
+  // Expose function globally so tick() can access it
+  window.triggerCountdownComplete = triggerCountdownComplete;
+
+  // Monitor countdown completion
+  const countdownEl = document.getElementById('countdown');
+  if (countdownEl) {
+    // Create observer to watch for countdown changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList' || mutation.type === 'characterData') {
+          const countdownText = countdownEl.textContent || '';
+          // Check if countdown shows all zeros (timer finished) - handle both regular and non-breaking spaces
+          const isCountdownFinished = countdownText.includes('00 : 00 : 00 : 00') ||
+            countdownText.includes('00\u00A0:\u00A000\u00A0:\u00A000\u00A0:\u00A000') ||
+            countdownText.replace(/\u00A0/g, ' ').includes('00 : 00 : 00 : 00');
+
+          if (isCountdownFinished && !countdownFinished) {
+            triggerCountdownComplete();
+          }
+        }
+      });
+    });
+
+    // Start observing
+    observer.observe(countdownEl, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  }
 })();

@@ -5,10 +5,68 @@ import { WebSocketServer } from 'ws';
 
 const app = express();
 app.use(cors());
+app.use(express.static('../FE'));
+
+const EVENT_MONTH = 11;
+const EVENT_DAY = 3;
+const EVENT_HOUR = 19;
+const EVENT_MINUTE = 51;
+// const EVENT_MONTH = 0;
+// const EVENT_DAY = 22;
+// const EVENT_HOUR = 14;
+// const EVENT_MINUTE = 44;
 
 // Basic health route
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
+});
+
+// Get celebration countdown configuration
+app.get('/celebration-date', (_req, res) => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  // Check if it's the target date and we're past the target time
+  const todaysTarget = new Date(Date.UTC(currentYear, EVENT_MONTH, EVENT_DAY, EVENT_HOUR, EVENT_MINUTE));
+  const isTodayTargetDate = now.getMonth() === EVENT_MONTH && now.getDate() === EVENT_DAY;
+
+  if (isTodayTargetDate && now >= todaysTarget) {
+    // It's the target date and past the target time - redirect immediately
+    res.json({
+      redirectNow: true,
+      redirectTo: '/celebration.html',
+      message: "It's time! 🎉"
+    });
+    return;
+  }
+
+  // Target is this year's event, or next year if it already passed
+  let targetDate = new Date(Date.UTC(currentYear, EVENT_MONTH, EVENT_DAY, EVENT_HOUR, EVENT_MINUTE));
+  if (now > targetDate) {
+    targetDate = new Date(Date.UTC(currentYear + 1, EVENT_MONTH, EVENT_DAY, EVENT_HOUR, EVENT_MINUTE));
+  }
+
+  // Start is always one year before the target
+  const startDate = new Date(Date.UTC(targetDate.getFullYear() - 1, EVENT_MONTH, EVENT_DAY, EVENT_HOUR, EVENT_MINUTE));
+
+  res.json({
+    targetDate: targetDate.toISOString(),
+    targetTimestamp: targetDate.getTime(),
+  });
+});
+
+// celebration endpoint - called when timer reaches zero
+app.get('/celebration', (_req, res) => {
+  const now = new Date();
+  const iscelebrationToday = now.getMonth() === EVENT_MONTH && now.getDate() === EVENT_DAY;
+
+  // Only respond with celebration page when timer completes
+  res.json({
+    redirect: true,
+    redirectTo: '/celebration.html',
+    message: iscelebrationToday ? "It's the special day! 🎉" : "Time's up! Special celebration time! 🎊",
+    iscelebrationToday
+  });
 });
 
 const server = http.createServer(app);
@@ -43,7 +101,6 @@ const broadcast = (obj) => {
 // Track connections and simple broadcast of mouse events
 wss.on('connection', (ws, req) => {
   const client = req.socket.remoteAddress;
-  console.info('WS connected:', client);
 
   // Parse a client-provided stable id from query (?uid=...) and session id (?sid=...)
   const url = new URL(req.url, 'http://localhost');
@@ -113,7 +170,6 @@ wss.on('connection', (ws, req) => {
   });
 
   ws.on('close', () => {
-    console.info('WS closed:', client);
     joinIndexBySocket.delete(ws);
     // Remove socket from uid set; keep firstSeen for future sessions
     const uset = socketsByUid.get(uid);
@@ -134,6 +190,4 @@ wss.on('connection', (ws, req) => {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.info(`BE listening on http://localhost:${PORT}`);
-  console.info(`WebSocket on ws://localhost:${PORT}/`);
 });
