@@ -1,24 +1,39 @@
 import express from 'express';
 import cors from 'cors';
 import http from 'http';
+import path from 'path';
 import { WebSocketServer } from 'ws';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
-app.use(express.static('../FE'));
+app.use(express.static(__dirname));
 
-const EVENT_MONTH = 11;
-const EVENT_DAY = 3;
-const EVENT_HOUR = 19;
-const EVENT_MINUTE = 51;
 // const EVENT_MONTH = 0;
 // const EVENT_DAY = 22;
 // const EVENT_HOUR = 14;
 // const EVENT_MINUTE = 44;
+const EVENT_MONTH = 11;
+const EVENT_DAY = 3;
+const EVENT_HOUR = 20;
+const EVENT_MINUTE = 0;
 
 // Basic health route
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
+});
+
+// Serve the main waiting room page
+app.get('/', (_req, res) => {
+  res.sendFile(__dirname + '/index.html');
+});
+
+// Serve the celebration page
+app.get('/celebration.html', (_req, res) => {
+  res.sendFile(__dirname + '/celebration.html');
 });
 
 // Get celebration countdown configuration
