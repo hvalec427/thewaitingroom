@@ -12,14 +12,10 @@ const app = express();
 app.use(cors());
 app.use(express.static(__dirname));
 
-// const EVENT_MONTH = 0;
-// const EVENT_DAY = 22;
-// const EVENT_HOUR = 14;
-// const EVENT_MINUTE = 44;
-const EVENT_MONTH = 11;
-const EVENT_DAY = 3;
-const EVENT_HOUR = 20;
-const EVENT_MINUTE = 0;
+const EVENT_MONTH = 0;
+const EVENT_DAY = 22;
+const EVENT_HOUR = 14;
+const EVENT_MINUTE = 44;
 
 // Basic health route
 app.get('/health', (_req, res) => {
