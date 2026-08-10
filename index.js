@@ -3,7 +3,8 @@
   const BUBBLE_EDGE_PAD = 8;
   const BUBBLE_EDGE_PAD_Y = 8;
 
-  const defaultWs = 'ws://localhost:3001/';
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const defaultWs = `${wsProtocol}//${window.location.host}/`;
   // Generate or reuse a stable uid for this browser
   let uid = localStorage.getItem('twroom_uid');
   if (!uid) {
@@ -241,7 +242,7 @@
   // Fetch countdown configuration from backend
   async function initializeCountdown() {
     try {
-      const response = await fetch('http://localhost:3001/celebration-date');
+      const response = await fetch('/celebration-date');
       const data = await response.json();
 
       // Check if we should redirect immediately
@@ -334,7 +335,7 @@
     countdownFinished = true;
 
     try {
-      const response = await fetch('http://localhost:3001/celebration');
+      const response = await fetch('/celebration');
       const data = await response.json();
 
       if (data.redirect && data.redirectTo) {
