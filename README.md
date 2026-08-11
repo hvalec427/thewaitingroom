@@ -18,7 +18,6 @@ A single Node process that does two things:
 | `GET /widget.js`      | The embeddable presence script (static file)                             |
 | `GET /:room`          | Self-serve setup page for a room: embed snippet + live demo              |
 | `GET /waiting-room`   | The original waiting room page                                           |
-| `GET /celebration.html` | Celebration page the waiting room redirects to when its countdown ends |
 | `GET /health`         | Health check, returns `{ ok: true }`                                     |
 | `GET /celebration-date` | Waiting room countdown target/start timestamps                         |
 | `GET /celebration`    | Called client-side when the waiting room countdown hits zero             |
@@ -53,7 +52,7 @@ lives in memory per room and resets on server restart.
 Everyone who opens `/waiting-room` sees a live countdown to the same target
 date/time, their live queue position, how many other people are currently
 waiting, and each other's mouse cursors and typed messages in real time. When
-the countdown hits zero, everyone is redirected to `/celebration.html`.
+the countdown hits zero, everyone is redirected onward.
 Refreshing the page sends you to the back of the line (a new queue position).
 
 ### Configuring the target date
@@ -70,7 +69,7 @@ const EVENT_MINUTE = 44;
 The server always targets the next occurrence of that month/day/time (this
 year if it hasn't passed yet, otherwise next year), and once that date/time
 has passed on the day itself, `/celebration-date` reports `redirectNow: true`
-so late visitors go straight to the celebration page.
+so late visitors are sent onward immediately.
 
 The countdown display is rendered in the `Europe/Ljubljana` timezone (see the
 `tz` constant in `public/waiting-room.js`) — change that if you want a
@@ -86,8 +85,6 @@ different display timezone.
 - `public/room.html` — server-templated setup page for `/:room`.
 - `public/waiting-room.html` / `public/waiting-room.js` — the waiting room
   page.
-- `public/celebration.html` — the page waiting-room visitors land on once the
-  countdown finishes.
 
 ## Running locally
 

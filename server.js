@@ -25,6 +25,16 @@ const EVENT_MINUTE = 44;
 // Internal room id used by the standalone waiting-room page (not reachable via /:room)
 const WAITING_ROOM_ID = '__waiting-room__';
 
+// True only on the event's UTC calendar day, at or after its target time.
+// Uses UTC getters throughout — EVENT_HOUR/EVENT_MINUTE are UTC, and mixing
+// them with local-timezone getters would shift this window by the server's
+// UTC offset depending on where it happens to be deployed.
+const isCelebrationLive = (now = new Date()) => {
+  const todaysTarget = new Date(Date.UTC(now.getUTCFullYear(), EVENT_MONTH, EVENT_DAY, EVENT_HOUR, EVENT_MINUTE));
+  const isTargetDate = now.getUTCMonth() === EVENT_MONTH && now.getUTCDate() === EVENT_DAY;
+  return isTargetDate && now >= todaysTarget;
+};
+
 // Basic health route
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
@@ -40,21 +50,21 @@ app.get('/waiting-room', (_req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'waiting-room.html'));
 });
 
-// Serve the celebration page
+// Not served from the static public/ dir on purpose — only reachable while
+// the event is actually live, everyone else gets a plain 404.
 app.get('/celebration.html', (_req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'celebration.html'));
+  if (!isCelebrationLive()) {
+    res.status(404).end();
+    return;
+  }
+  res.sendFile(path.join(__dirname, 'secret', 'celebration.html'));
 });
 
 // Get celebration countdown configuration
 app.get('/celebration-date', (_req, res) => {
   const now = new Date();
-  const currentYear = now.getFullYear();
 
-  // Check if it's the target date and we're past the target time
-  const todaysTarget = new Date(Date.UTC(currentYear, EVENT_MONTH, EVENT_DAY, EVENT_HOUR, EVENT_MINUTE));
-  const isTodayTargetDate = now.getMonth() === EVENT_MONTH && now.getDate() === EVENT_DAY;
-
-  if (isTodayTargetDate && now >= todaysTarget) {
+  if (isCelebrationLive()) {
     // It's the target date and past the target time - redirect immediately
     res.json({
       redirectNow: true,
@@ -65,13 +75,14 @@ app.get('/celebration-date', (_req, res) => {
   }
 
   // Target is this year's event, or next year if it already passed
+  const currentYear = now.getUTCFullYear();
   let targetDate = new Date(Date.UTC(currentYear, EVENT_MONTH, EVENT_DAY, EVENT_HOUR, EVENT_MINUTE));
   if (now > targetDate) {
     targetDate = new Date(Date.UTC(currentYear + 1, EVENT_MONTH, EVENT_DAY, EVENT_HOUR, EVENT_MINUTE));
   }
 
   // Start is always one year before the target
-  const startDate = new Date(Date.UTC(targetDate.getFullYear() - 1, EVENT_MONTH, EVENT_DAY, EVENT_HOUR, EVENT_MINUTE));
+  const startDate = new Date(Date.UTC(targetDate.getUTCFullYear() - 1, EVENT_MONTH, EVENT_DAY, EVENT_HOUR, EVENT_MINUTE));
 
   res.json({
     targetDate: targetDate.toISOString(),
@@ -82,15 +93,14 @@ app.get('/celebration-date', (_req, res) => {
 
 // celebration endpoint - called when timer reaches zero
 app.get('/celebration', (_req, res) => {
-  const now = new Date();
-  const iscelebrationToday = now.getMonth() === EVENT_MONTH && now.getDate() === EVENT_DAY;
+  const live = isCelebrationLive();
 
   // Only respond with celebration page when timer completes
   res.json({
     redirect: true,
     redirectTo: '/celebration.html',
-    message: iscelebrationToday ? "It's the special day! 🎉" : "Time's up! Special celebration time! 🎊",
-    iscelebrationToday
+    message: live ? "It's the special day! 🎉" : "Time's up! Special celebration time! 🎊",
+    iscelebrationToday: live,
   });
 });
 
