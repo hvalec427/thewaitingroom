@@ -105,14 +105,6 @@ const escapeHtml = (str) => String(str).replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]));
 
-let roomPageTemplate = null;
-const getRoomPageTemplate = () => {
-  if (!roomPageTemplate) {
-    roomPageTemplate = fs.readFileSync(path.join(PUBLIC_DIR, 'room.html'), 'utf8');
-  }
-  return roomPageTemplate;
-};
-
 app.get('/:room', (req, res, next) => {
   const room = req.params.room;
   if (RESERVED_SLUGS.has(room.toLowerCase()) || !ROOM_SLUG_RE.test(room)) {
@@ -120,7 +112,7 @@ app.get('/:room', (req, res, next) => {
   }
   const safeRoom = escapeHtml(room);
   const origin = `${req.protocol}://${req.get('host')}`;
-  const html = getRoomPageTemplate()
+  const html = fs.readFileSync(path.join(PUBLIC_DIR, 'room.html'), 'utf8')
     .split('{{ORIGIN}}').join(origin)
     .split('{{ROOM_ATTR}}').join(safeRoom)
     .split('{{ROOM}}').join(safeRoom);
