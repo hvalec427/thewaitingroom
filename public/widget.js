@@ -17,6 +17,8 @@
   // browser still count and appear as two separate people.
   var explicitUid = scriptEl && scriptEl.getAttribute('data-uid');
   var showBadge = !(scriptEl && scriptEl.getAttribute('data-badge') === 'false');
+  var showCursors = !(scriptEl && scriptEl.getAttribute('data-cursors') === 'false');
+  var showMessages = !(scriptEl && scriptEl.getAttribute('data-messages') === 'false');
   var UID_KEY = 'presence_widget_uid';
   var uid = explicitUid;
   if (!uid) {
@@ -74,15 +76,22 @@
       countEl = badge.querySelector('.pwgt-count');
     }
 
-    var myDot = document.createElement('div');
-    myDot.className = 'pwgt-dot pwgt-me';
-    myDot.style.display = 'none';
-    overlay.appendChild(myDot);
-    var myBubble = document.createElement('div');
-    myBubble.className = 'pwgt-bubble pwgt-hidden';
-    myBubble.appendChild(document.createElement('span'));
-    overlay.appendChild(myBubble);
+    var myDot = null;
+    if (showCursors) {
+      myDot = document.createElement('div');
+      myDot.className = 'pwgt-dot pwgt-me';
+      myDot.style.display = 'none';
+      overlay.appendChild(myDot);
+    }
+    var myBubble = null;
+    if (showMessages) {
+      myBubble = document.createElement('div');
+      myBubble.className = 'pwgt-bubble pwgt-hidden';
+      myBubble.appendChild(document.createElement('span'));
+      overlay.appendChild(myBubble);
+    }
     function placeMyBubble(x, y) {
+      if (!myBubble) return;
       var w = window.innerWidth, h = window.innerHeight;
       myBubble.style.left = (x * w) + 'px';
       myBubble.style.top = Math.max(20, (y * h) - 10) + 'px';
@@ -92,14 +101,20 @@
     function ensurePeer(id) {
       var p = peers.get(id);
       if (!p) {
-        var dot = document.createElement('div');
-        dot.className = 'pwgt-dot';
-        overlay.appendChild(dot);
-        var bubble = document.createElement('div');
-        bubble.className = 'pwgt-bubble pwgt-hidden';
-        bubble.appendChild(document.createElement('span'));
-        overlay.appendChild(bubble);
-        p = { dot: dot, bubble: bubble };
+        p = {};
+        if (showCursors) {
+          var dot = document.createElement('div');
+          dot.className = 'pwgt-dot';
+          overlay.appendChild(dot);
+          p.dot = dot;
+        }
+        if (showMessages) {
+          var bubble = document.createElement('div');
+          bubble.className = 'pwgt-bubble pwgt-hidden';
+          bubble.appendChild(document.createElement('span'));
+          overlay.appendChild(bubble);
+          p.bubble = bubble;
+        }
         peers.set(id, p);
       }
       return p;
@@ -107,25 +122,29 @@
     function removePeer(id) {
       var p = peers.get(id);
       if (p) {
-        if (p.dot.parentNode) p.dot.parentNode.removeChild(p.dot);
-        if (p.bubble.parentNode) p.bubble.parentNode.removeChild(p.bubble);
+        if (p.dot && p.dot.parentNode) p.dot.parentNode.removeChild(p.dot);
+        if (p.bubble && p.bubble.parentNode) p.bubble.parentNode.removeChild(p.bubble);
       }
       peers.delete(id);
     }
     function placePeer(id, x, y) {
+      if (!showCursors) return;
       var p = ensurePeer(id);
+      if (!p.dot) return;
       var w = window.innerWidth, h = window.innerHeight;
       p.dot.style.left = (x * w) + 'px';
       p.dot.style.top = (y * h) + 'px';
-      p.bubble.style.left = (x * w) + 'px';
-      p.bubble.style.top = Math.max(20, (y * h) - 10) + 'px';
     }
     function placePeerTyping(id, x, y, text) {
+      if (!showMessages) return;
       if (!text && !peers.has(id)) return;
       var p = ensurePeer(id);
+      if (!p.bubble) return;
+      var w = window.innerWidth, h = window.innerHeight;
       p.bubble.firstChild.textContent = text || '';
       p.bubble.classList.toggle('pwgt-hidden', !text);
-      placePeer(id, x, y);
+      p.bubble.style.left = (x * w) + 'px';
+      p.bubble.style.top = Math.max(20, (y * h) - 10) + 'px';
     }
 
     var ws;
@@ -161,13 +180,17 @@
       var x = e.clientX / window.innerWidth;
       var y = e.clientY / window.innerHeight;
       lastPos = { x: x, y: y };
-      myDot.style.display = '';
-      myDot.style.left = e.clientX + 'px';
-      myDot.style.top = e.clientY + 'px';
-      if (typingText) placeMyBubble(x, y);
-      if (typingText) sendTyping();
-      if (ws && ws.readyState === ws.OPEN) {
-        ws.send(JSON.stringify({ type: 'mousemove', x: x, y: y }));
+      if (showCursors) {
+        myDot.style.display = '';
+        myDot.style.left = e.clientX + 'px';
+        myDot.style.top = e.clientY + 'px';
+        if (ws && ws.readyState === ws.OPEN) {
+          ws.send(JSON.stringify({ type: 'mousemove', x: x, y: y }));
+        }
+      }
+      if (showMessages && typingText) {
+        placeMyBubble(x, y);
+        sendTyping();
       }
     });
 
@@ -175,6 +198,7 @@
     var lastTypedAt = 0;
     var INACTIVITY_TTL_MS = 10000;
     function sendTyping() {
+      if (!showMessages) return;
       myBubble.firstChild.textContent = typingText;
       myBubble.classList.toggle('pwgt-hidden', typingText.length === 0);
       placeMyBubble(lastPos.x, lastPos.y);
@@ -183,32 +207,34 @@
       }
     }
 
-    document.addEventListener('keydown', function (e) {
-      // Never hijack typing inside the host page's own form fields.
-      if (isEditableTarget(e.target)) return;
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key.length === 1) {
-        e.preventDefault();
-        typingText += e.key;
-      } else if (e.key === 'Backspace') {
-        e.preventDefault();
-        typingText = typingText.slice(0, -1);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        typingText = '';
-      } else {
-        return;
-      }
-      lastTypedAt = Date.now();
-      sendTyping();
-    });
-
-    setInterval(function () {
-      if (typingText && Date.now() - lastTypedAt >= INACTIVITY_TTL_MS) {
-        typingText = '';
+    if (showMessages) {
+      document.addEventListener('keydown', function (e) {
+        // Never hijack typing inside the host page's own form fields.
+        if (isEditableTarget(e.target)) return;
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.key.length === 1) {
+          e.preventDefault();
+          typingText += e.key;
+        } else if (e.key === 'Backspace') {
+          e.preventDefault();
+          typingText = typingText.slice(0, -1);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          typingText = '';
+        } else {
+          return;
+        }
+        lastTypedAt = Date.now();
         sendTyping();
-      }
-    }, 500);
+      });
+
+      setInterval(function () {
+        if (typingText && Date.now() - lastTypedAt >= INACTIVITY_TTL_MS) {
+          typingText = '';
+          sendTyping();
+        }
+      }, 500);
+    }
   }
 
   if (document.body) build();

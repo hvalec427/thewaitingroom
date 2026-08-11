@@ -82,6 +82,14 @@
             <td>Hides the small "N people here" pill in the bottom-right corner. Use this if you're building your own count display with the <code>presence:update</code> event below.</td>
           </tr>
           <tr>
+            <td><code>data-cursors="false"</code></td>
+            <td>Turns off live cursors entirely — no dot for you, none for anyone else, and your mouse position is never sent. Visitor count and typed messages still work.</td>
+          </tr>
+          <tr>
+            <td><code>data-messages="false"</code></td>
+            <td>Turns off typed message bubbles entirely — typing on the page is never captured or sent, and no one's messages are shown. Visitor count and cursors still work.</td>
+          </tr>
+          <tr>
             <td><code>data-uid="…"</code></td>
             <td>Overrides the visitor identity. By default the widget stores a stable id in <code>sessionStorage</code> — the same browser tab keeps its identity across reloads, but a new tab (or a new visitor) is always counted separately. Set this only if your page needs to control that identity itself (for example, to intentionally give someone a fresh identity on every reload).</td>
           </tr>
