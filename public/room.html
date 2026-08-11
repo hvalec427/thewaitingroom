@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Add Presence to {{ROOM}}</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      html, body { min-height: 100%; margin: 0; background: #ffffff; color:#0a0a0a; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+      a { color: inherit; }
+      header { display:flex; align-items:center; gap:10px; padding:18px 24px; font-weight:800; font-size:22px; }
+      header .logo { width:14px; height:14px; background:#a78bfa; border-radius:4px; box-shadow: 0 0 0 6px rgba(167,139,250,0.25); margin-right:8px; }
+      header a.home { text-decoration:none; color:#0a0a0a; display:flex; align-items:center; }
+      main { max-width: 720px; margin: 0 auto; padding: 24px 5vw 80px; }
+      .eyebrow { color:#7c3aed; font-weight:700; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; }
+      h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 800; letter-spacing: -0.02em; margin: 8px 0 4px; word-break: break-word; }
+      .sub { color:#404040; font-size: 17px; line-height: 1.6; margin-bottom: 28px; }
+      .step { margin-top: 36px; }
+      .step h2 { font-size: 15px; font-weight: 800; color:#111827; margin-bottom: 10px; }
+      .snippet-wrap { position: relative; }
+      pre.snippet { background:#0b1020; color:#e5e7eb; border:1px solid #1f2937; border-radius:10px; padding:16px 18px; font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x:auto; white-space: pre-wrap; word-break: break-all; }
+      pre.snippet .attr { color:#a78bfa; }
+      pre.snippet .str { color:#22d3ee; }
+      button.copy { position:absolute; top:10px; right:10px; background:#1f2937; color:#e5e7eb; border:1px solid #374151; border-radius:6px; padding:6px 10px; font-size:12px; font-weight:600; cursor:pointer; }
+      button.copy:hover { background:#374151; }
+      .features { display:grid; gap:10px; margin-top:14px; color:#404040; font-size:15px; line-height:1.6; }
+      .features li { margin-left: 18px; }
+      .demo-note { margin-top:10px; color:#6b7280; font-size:13px; }
+      .back { display:inline-block; margin-top:48px; color:#7c3aed; text-decoration:none; font-weight:700; font-size:14px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="home" href="/"><span class="logo"></span>Presence</a>
+    </header>
+    <main>
+      <div class="eyebrow">Free · No login required</div>
+      <h1>Add Presence to {{ROOM}}</h1>
+      <div class="sub">
+        Paste this one script tag into your site's HTML. It shows how many people are on the page right now,
+        streams everyone's live cursor, and lets visitors type floating messages to each other — all scoped
+        privately to the <strong>{{ROOM}}</strong> room.
+      </div>
+
+      <div class="step">
+        <h2>1. Add this before &lt;/body&gt;</h2>
+        <div class="snippet-wrap">
+          <pre class="snippet" id="snippet">&lt;script src=<span class="str">"{{ORIGIN}}/widget.js"</span> <span class="attr">data-room</span>=<span class="str">"{{ROOM_ATTR}}"</span> async&gt;&lt;/script&gt;</pre>
+          <button class="copy" id="copy-btn" type="button">Copy</button>
+        </div>
+      </div>
+
+      <div class="step">
+        <h2>2. That's it</h2>
+        <ul class="features">
+          <li>No account, no API key, no server-side setup.</li>
+          <li>Anyone loading a page with this snippet joins the <strong>{{ROOM}}</strong> room automatically.</li>
+          <li>Cursors and typing never interrupt your site's own forms or inputs.</li>
+          <li>Want a separate space? Use a different room name, e.g. <code>{{ORIGIN}}/{{ROOM}}-staging</code>.</li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <h2>Live preview</h2>
+        <div class="demo-note">
+          This page is itself running the widget for the <strong>{{ROOM}}</strong> room — move your mouse or type
+          something. Open this same URL in another tab to see it sync live.
+        </div>
+      </div>
+
+      <a class="back" href="/">&larr; Back home</a>
+    </main>
+
+    <script>
+      (function () {
+        var btn = document.getElementById('copy-btn');
+        var text = '<script src="{{ORIGIN}}/widget.js" data-room="{{ROOM_ATTR}}" async><' + '/script>';
+        btn.addEventListener('click', function () {
+          navigator.clipboard && navigator.clipboard.writeText(text).then(function () {
+            btn.textContent = 'Copied!';
+            setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+          });
+        });
+      })();
+    </script>
+    <script src="{{ORIGIN}}/widget.js" data-room="{{ROOM_ATTR}}" async></script>
+  </body>
+</html>

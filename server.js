@@ -1,35 +1,45 @@
 import express from 'express';
 import cors from 'cors';
 import http from 'http';
+import fs from 'fs';
 import path from 'path';
 import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const app = express();
 app.use(cors());
-app.use(express.static(__dirname));
+app.use(express.static(PUBLIC_DIR, { index: false }));
 
 const EVENT_MONTH = 0;
 const EVENT_DAY = 22;
 const EVENT_HOUR = 14;
 const EVENT_MINUTE = 44;
 
+// Internal room id used by the standalone waiting-room page (not reachable via /:room)
+const WAITING_ROOM_ID = '__waiting-room__';
+
 // Basic health route
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-// Serve the main waiting room page
+// New product landing page
 app.get('/', (_req, res) => {
-  res.sendFile(__dirname + '/index.html');
+  res.sendFile(path.join(PUBLIC_DIR, 'landing.html'));
+});
+
+// The original waiting room page, preserved as-is
+app.get('/waiting-room', (_req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'waiting-room.html'));
 });
 
 // Serve the celebration page
 app.get('/celebration.html', (_req, res) => {
-  res.sendFile(__dirname + '/celebration.html');
+  res.sendFile(path.join(PUBLIC_DIR, 'celebration.html'));
 });
 
 // Get celebration countdown configuration
@@ -63,6 +73,7 @@ app.get('/celebration-date', (_req, res) => {
   res.json({
     targetDate: targetDate.toISOString(),
     targetTimestamp: targetDate.getTime(),
+    startTimestamp: startDate.getTime(),
   });
 });
 
@@ -80,81 +91,109 @@ app.get('/celebration', (_req, res) => {
   });
 });
 
+// --- Presence-as-a-service: per-room setup page ---
+
+const ROOM_SLUG_RE = /^[a-zA-Z0-9]([a-zA-Z0-9-_.]{0,61}[a-zA-Z0-9])?$/;
+// Well-known single-segment paths that browsers/crawlers request automatically;
+// these should 404 instead of being treated as a room name.
+const RESERVED_SLUGS = new Set([
+  'favicon.ico', 'robots.txt', 'sitemap.xml', 'apple-touch-icon.png',
+  'apple-touch-icon-precomposed.png', 'ws',
+]);
+
+const escapeHtml = (str) => String(str).replace(/[&<>"']/g, (c) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[c]));
+
+let roomPageTemplate = null;
+const getRoomPageTemplate = () => {
+  if (!roomPageTemplate) {
+    roomPageTemplate = fs.readFileSync(path.join(PUBLIC_DIR, 'room.html'), 'utf8');
+  }
+  return roomPageTemplate;
+};
+
+app.get('/:room', (req, res, next) => {
+  const room = req.params.room;
+  if (RESERVED_SLUGS.has(room.toLowerCase()) || !ROOM_SLUG_RE.test(room)) {
+    return next(); // fall through to 404
+  }
+  const safeRoom = escapeHtml(room);
+  const origin = `${req.protocol}://${req.get('host')}`;
+  const html = getRoomPageTemplate()
+    .split('{{ORIGIN}}').join(origin)
+    .split('{{ROOM_ATTR}}').join(safeRoom)
+    .split('{{ROOM}}').join(safeRoom);
+  res.type('html').send(html);
+});
+
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server, path: '/' });
+const wss = new WebSocketServer({ server, path: '/ws' });
 
-// Legacy incremental index retained for compatibility (not used for rank)
-let nextJoinIndex = 1;
-const joinIndexBySocket = new Map();      // ws -> legacy index
-const indexByUserId = new Map();          // uid -> legacy index
+// Presence state, namespaced per room so unrelated sites/rooms never see each other.
+const rooms = new Map(); // roomId -> { firstSeenByUid: Map, socketsByUid: Map }
+const getRoomState = (roomId) => {
+  let state = rooms.get(roomId);
+  if (!state) {
+    state = { firstSeenByUid: new Map(), socketsByUid: new Map() };
+    rooms.set(roomId, state);
+  }
+  return state;
+};
 
-// Ranking and presence (single-tab identity)
-const firstSeenByUid = new Map(); // uid -> timestamp
-const socketsByUid = new Map();   // uid -> Set<ws>
-
-// Helpers
-const getActiveUids = () => Array.from(socketsByUid.entries())
+const getActiveUids = (state) => Array.from(state.socketsByUid.entries())
   .filter(([_u, set]) => set.size > 0)
   .map(([u]) => u);
-const activeCount = () => getActiveUids().length;
-const computeRank = (u) => {
-  const active = getActiveUids();
-  const meTs = firstSeenByUid.get(u) || 0;
-  const ahead = active.filter(x => (firstSeenByUid.get(x) || 0) < meTs).length;
+const activeCount = (state) => getActiveUids(state).length;
+const computeRank = (state, u) => {
+  const active = getActiveUids(state);
+  const meTs = state.firstSeenByUid.get(u) || 0;
+  const ahead = active.filter(x => (state.firstSeenByUid.get(x) || 0) < meTs).length;
   return Math.min(ahead + 1, active.length);
 };
 const safeSend = (sock, obj) => { if (sock && sock.readyState === sock.OPEN) { try { sock.send(JSON.stringify(obj)); } catch { } } };
-const broadcast = (obj) => {
+const roomClients = (roomId) => Array.from(wss.clients).filter(c => c._room === roomId);
+const broadcastRoom = (roomId, obj) => {
   const payload = JSON.stringify(obj);
-  wss.clients.forEach(c => { if (c.readyState === c.OPEN) { try { c.send(payload); } catch { } } });
+  roomClients(roomId).forEach(c => { if (c.readyState === c.OPEN) { try { c.send(payload); } catch { } } });
 };
 
-// Track connections and simple broadcast of mouse events
 wss.on('connection', (ws, req) => {
-  const client = req.socket.remoteAddress;
-
-  // Parse a client-provided stable id from query (?uid=...) and session id (?sid=...)
   const url = new URL(req.url, 'http://localhost');
+  const roomId = (url.searchParams.get('room') || WAITING_ROOM_ID).slice(0, 128);
   const uid = url.searchParams.get('uid') || (Date.now() + Math.random().toString(36).slice(2, 8));
-  const sid = url.searchParams.get('sid') || '';
   ws._id = uid;
-  ws._sid = sid;
-  // First seen timestamp: on reconnect, push to back of line
-  firstSeenByUid.set(uid, Date.now());
-  // Track sockets per uid (single-tab identity: count user once if any socket open)
-  if (!socketsByUid.has(uid)) socketsByUid.set(uid, new Set());
-  socketsByUid.get(uid).add(ws);
-  // Maintain legacy index mapping but recompute display rank from firstSeen among active uids
-  let you = indexByUserId.get(uid);
-  if (!you) { you = nextJoinIndex++; indexByUserId.set(uid, you); }
-  joinIndexBySocket.set(ws, you);
+  ws._room = roomId;
 
-  // Broadcast presence on join
-  const broadcastPresence = () => { broadcast({ type: 'presence', count: activeCount() }); };
-  // Send welcome with your computed rank (first-seen among active uids)
-  safeSend(ws, { type: 'welcome', you: computeRank(uid), count: activeCount() });
+  const state = getRoomState(roomId);
+  // First seen timestamp: on reconnect, push to back of line
+  state.firstSeenByUid.set(uid, Date.now());
+  // Track sockets per uid (single-tab identity: count user once if any socket open)
+  if (!state.socketsByUid.has(uid)) state.socketsByUid.set(uid, new Set());
+  state.socketsByUid.get(uid).add(ws);
+
+  const broadcastPresence = () => { broadcastRoom(roomId, { type: 'presence', count: activeCount(state) }); };
+  safeSend(ws, { type: 'welcome', you: computeRank(state, uid), count: activeCount(state) });
   broadcastPresence();
 
-  // Notify everyone of rank updates (optional simple broadcast)
   const broadcastRanks = () => {
-    const count = activeCount();
-    wss.clients.forEach(c => {
+    const count = activeCount(state);
+    roomClients(roomId).forEach(c => {
       const cu = c._id;
       if (c.readyState !== c.OPEN || !cu) return;
-      safeSend(c, { type: 'rank', you: computeRank(cu), count });
+      safeSend(c, { type: 'rank', you: computeRank(state, cu), count });
     });
   };
 
   broadcastRanks();
 
   const removePeer = (id) => {
-    wss.clients.forEach(c => {
+    roomClients(roomId).forEach(c => {
       const cu = c._id;
       if (c.readyState !== c.OPEN || !cu) return;
       safeSend(c, { type: 'peer-disconnect', id });
     });
   };
-
 
   ws.on('message', (data) => {
     let msg;
@@ -164,16 +203,14 @@ wss.on('connection', (ws, req) => {
       return; // ignore non-JSON
     }
 
-    // Expecting {type: 'mousemove'|'typing', x, y, text?}
     if (msg && msg.type === 'mousemove') {
-      // Optionally broadcast to others
-      wss.clients.forEach((clientWs) => {
+      roomClients(roomId).forEach((clientWs) => {
         if (clientWs === ws) return;
         safeSend(clientWs, { type: 'peer-mousemove', id: uid, x: msg.x, y: msg.y });
       });
     } else if (msg && msg.type === 'typing') {
-      const payload = { type: 'peer-typing', id: uid, x: msg.x, y: msg.y, text: String(msg.text || '') };
-      wss.clients.forEach((clientWs) => {
+      const payload = { type: 'peer-typing', id: uid, x: msg.x, y: msg.y, text: String(msg.text || '').slice(0, 280) };
+      roomClients(roomId).forEach((clientWs) => {
         if (clientWs === ws) return;
         safeSend(clientWs, payload);
       });
@@ -181,17 +218,9 @@ wss.on('connection', (ws, req) => {
   });
 
   ws.on('close', () => {
-    joinIndexBySocket.delete(ws);
-    // Remove socket from uid set; keep firstSeen for future sessions
-    const uset = socketsByUid.get(uid);
-    if (uset) {
-      uset.delete(ws);
-      if (uset.size === 0) {
-        // single-tab identity: user is no longer active
-      }
-    }
+    const uset = state.socketsByUid.get(uid);
+    if (uset) uset.delete(ws);
     broadcastPresence();
-    // Broadcast updated ranks after disconnect
     setTimeout(() => {
       broadcastRanks();
       removePeer(uid);
