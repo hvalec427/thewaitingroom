@@ -11,6 +11,9 @@ const __dirname = path.dirname(__filename);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const app = express();
+// Behind a reverse proxy (TLS-terminating), trust X-Forwarded-Proto so
+// req.protocol correctly reports "https" instead of always "http".
+app.set('trust proxy', true);
 app.use(cors());
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
