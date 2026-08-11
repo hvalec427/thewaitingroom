@@ -26,6 +26,13 @@
       .features { display:grid; gap:10px; margin-top:14px; color:#404040; font-size:15px; line-height:1.6; }
       .features li { margin-left: 18px; }
       .demo-note { margin-top:10px; color:#6b7280; font-size:13px; }
+      .opt-table { width:100%; border-collapse:collapse; margin-top:14px; font-size:14px; }
+      .opt-table th { text-align:left; color:#111827; font-size:12px; text-transform:uppercase; letter-spacing:0.04em; padding-bottom:8px; border-bottom:1px solid #e5e7eb; }
+      .opt-table td { padding:10px 0; border-bottom:1px solid #f3f4f6; vertical-align:top; color:#404040; line-height:1.5; }
+      .opt-table code { background:#f3f4f6; border-radius:4px; padding:1px 6px; font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; color:#7c3aed; white-space:nowrap; }
+      pre.event-snippet { background:#0b1020; color:#e5e7eb; border:1px solid #1f2937; border-radius:10px; padding:14px 16px; font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x:auto; margin-top:14px; white-space:pre; }
+      pre.event-snippet .kw { color:#a78bfa; }
+      pre.event-snippet .str { color:#22d3ee; }
       .demo-count { margin-top:10px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:#111827; }
       .demo-count .led { width:7px; height:7px; border-radius:50%; background:#22d3ee; box-shadow:0 0 0 3px rgba(34,211,238,0.25); }
       .back { display:inline-block; margin-top:48px; color:#7c3aed; text-decoration:none; font-weight:700; font-size:14px; }
@@ -60,6 +67,40 @@
           <li>Cursors and typing never interrupt your site's own forms or inputs.</li>
           <li>Want a separate space? Use a different room name, e.g. <code>{{ORIGIN}}/{{ROOM}}-staging</code>.</li>
         </ul>
+      </div>
+
+      <div class="step">
+        <h2>3. Advanced options (optional)</h2>
+        <table class="opt-table">
+          <tr><th>Attribute</th><th>What it does</th></tr>
+          <tr>
+            <td><code>data-room</code></td>
+            <td>Which room to join. Anyone using the same room name (on any site) shares presence. Required — already set to <strong>{{ROOM}}</strong> above.</td>
+          </tr>
+          <tr>
+            <td><code>data-badge="false"</code></td>
+            <td>Hides the small "N people here" pill in the bottom-right corner. Use this if you're building your own count display with the <code>presence:update</code> event below.</td>
+          </tr>
+          <tr>
+            <td><code>data-uid="…"</code></td>
+            <td>Overrides the visitor identity. By default the widget stores a stable id in <code>sessionStorage</code> — the same browser tab keeps its identity across reloads, but a new tab (or a new visitor) is always counted separately. Set this only if your page needs to control that identity itself (for example, to intentionally give someone a fresh identity on every reload).</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="step">
+        <h2>4. Build your own UI (optional)</h2>
+        <div class="sub" style="font-size:15px; margin-bottom:0;">
+          The widget dispatches a <code>presence:update</code> event on <code>window</code> every time the visitor
+          count or your queue position changes (<code>event.detail.count</code>, <code>event.detail.room</code>,
+          <code>event.detail.you</code>), so you can render your own count/badge instead of the built-in one — for
+          example, to show a live number of connections:
+        </div>
+        <pre class="event-snippet">window.addEventListener(<span class="str">"presence:update"</span>, (event) => {
+  <span class="kw">const</span> el = document.getElementById(<span class="str">"presence-count"</span>);
+  <span class="kw">if</span> (!el || <span class="kw">typeof</span> event.detail.count !== <span class="str">"number"</span>) <span class="kw">return</span>;
+  el.textContent = `${event.detail.count} online`;
+});</pre>
       </div>
 
       <div class="step">
