@@ -26,6 +26,8 @@
       .features { display:grid; gap:10px; margin-top:14px; color:#404040; font-size:15px; line-height:1.6; }
       .features li { margin-left: 18px; }
       .demo-note { margin-top:10px; color:#6b7280; font-size:13px; }
+      .demo-count { margin-top:10px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:#111827; }
+      .demo-count .led { width:7px; height:7px; border-radius:50%; background:#22d3ee; box-shadow:0 0 0 3px rgba(34,211,238,0.25); }
       .back { display:inline-block; margin-top:48px; color:#7c3aed; text-decoration:none; font-weight:700; font-size:14px; }
     </style>
   </head>
@@ -62,6 +64,7 @@
 
       <div class="step">
         <h2>Live preview</h2>
+        <div class="demo-count"><span class="led"></span><span id="room-count">Connecting…</span></div>
         <div class="demo-note">
           This page is itself running the widget for the <strong>{{ROOM}}</strong> room — move your mouse or type
           something. Open this same URL in another tab to see it sync live.
@@ -80,6 +83,13 @@
             btn.textContent = 'Copied!';
             setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
           });
+        });
+
+        var countEl = document.getElementById('room-count');
+        window.addEventListener('presence:update', function (e) {
+          var count = e.detail && e.detail.count;
+          if (typeof count !== 'number') return;
+          countEl.textContent = count + (count === 1 ? ' person here right now' : ' people here right now');
         });
       })();
     </script>
