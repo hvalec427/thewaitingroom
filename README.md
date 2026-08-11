@@ -1,27 +1,19 @@
 # Presence
 
-A single Node process that does two things:
-
-1. **Presence widget** — a free, no-login embeddable script. Anyone can add
-   `https://presence.hvalec.com/widget.js` to their site and get a live visitor
-   count, live peer cursors, and floating typed chat bubbles, scoped to a room
-   name of their choosing.
-2. **The Waiting Room** — the original single-page "waiting room" kept at
-   `/waiting-room`: a synchronized countdown, live queue position, and the same
-   cursor/typing presence, for sharing ahead of a specific event.
+A free, no-login embeddable script. Anyone can add
+`https://presence.hvalec.com/widget.js` to their site and get a live visitor
+count, live peer cursors, and floating typed chat bubbles, scoped to a room
+name of their choosing.
 
 ## Routes
 
-| Route                | Description                                                              |
-|-----------------------|---------------------------------------------------------------------------|
-| `GET /`               | Product landing page                                                     |
-| `GET /widget.js`      | The embeddable presence script (static file)                             |
-| `GET /:room`          | Self-serve setup page for a room: embed snippet + live demo              |
-| `GET /waiting-room`   | The original waiting room page                                           |
-| `GET /health`         | Health check, returns `{ ok: true }`                                     |
-| `GET /celebration-date` | Waiting room countdown target/start timestamps                         |
-| `GET /celebration`    | Called client-side when the waiting room countdown hits zero             |
-| `WS /ws?room=<id>`    | Presence + live cursor/typing broadcast channel, namespaced per room     |
+| Route             | Description                                                   |
+|--------------------|-----------------------------------------------------------------|
+| `GET /`            | Product landing page                                           |
+| `GET /widget.js`   | The embeddable presence script (static file)                   |
+| `GET /:room`       | Self-serve setup page for a room: embed snippet + live demo    |
+| `GET /health`      | Health check, returns `{ ok: true }`                            |
+| `WS /ws?room=<id>` | Presence + live cursor/typing broadcast channel, namespaced per room |
 
 ## How the presence widget works
 
@@ -44,47 +36,32 @@ Dropped into any site, it:
 
 Rooms are just strings — there is no signup or ownership, so two sites using
 the same room name will share presence (by design, matching the "no login"
-goal). There is no server-side rendering per room beyond the setup page; state
-lives in memory per room and resets on server restart.
+goal). Rooms are unlisted, not private: there's no access control beyond not
+telling someone the room name. There is no server-side rendering per room
+beyond the setup page; state lives in memory per room and resets on server
+restart.
 
-## The Waiting Room
+### Widget options
 
-Everyone who opens `/waiting-room` sees a live countdown to the same target
-date/time, their live queue position, how many other people are currently
-waiting, and each other's mouse cursors and typed messages in real time. When
-the countdown hits zero, everyone is redirected onward.
-Refreshing the page sends you to the back of the line (a new queue position).
+The `<script>` tag also accepts:
 
-### Configuring the target date
+| Attribute              | What it does                                                              |
+|--------------------------|------------------------------------------------------------------------|
+| `data-badge="false"`     | Hides the visitor-count badge                                          |
+| `data-cursors="false"`   | Fully disables cursors — nothing rendered or sent                      |
+| `data-messages="false"`  | Fully disables typing bubbles — nothing captured, rendered, or sent    |
+| `data-uid="…"`           | Overrides the auto-generated, `sessionStorage`-persisted visitor identity |
 
-Edit the constants at the top of `server.js`:
-
-```js
-const EVENT_MONTH = 0;   // 0 = January
-const EVENT_DAY = 22;
-const EVENT_HOUR = 14;   // 24h, interpreted in UTC
-const EVENT_MINUTE = 44;
-```
-
-The server always targets the next occurrence of that month/day/time (this
-year if it hasn't passed yet, otherwise next year), and once that date/time
-has passed on the day itself, `/celebration-date` reports `redirectNow: true`
-so late visitors are sent onward immediately.
-
-The countdown display is rendered in the `Europe/Ljubljana` timezone (see the
-`tz` constant in `public/waiting-room.js`) — change that if you want a
-different display timezone.
+It also dispatches a `presence:update` event on `window` (`detail: { room,
+count, you }`) so a page can build its own UI instead of the built-in badge.
 
 ## File layout
 
-- `server.js` — Express app: serves `public/`, exposes the countdown API, and
-  runs a `ws` WebSocket server (mounted at `/ws`) with per-room presence
-  state.
+- `server.js` — Express app: serves `public/`, and runs a `ws` WebSocket
+  server (mounted at `/ws`) with per-room presence state.
 - `public/landing.html` — the product landing page (`/`).
 - `public/widget.js` — the embeddable presence script.
 - `public/room.html` — server-templated setup page for `/:room`.
-- `public/waiting-room.html` / `public/waiting-room.js` — the waiting room
-  page.
 
 ## Running locally
 
