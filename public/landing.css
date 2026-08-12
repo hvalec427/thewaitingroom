@@ -18,9 +18,13 @@ header {
   font-weight: 800;
   font-size: 22px;
 }
-header .brand {
+header a.home {
   display: flex;
   align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  text-decoration: none;
+  color: inherit;
 }
 header .logo {
   width: 14px;
@@ -28,7 +32,6 @@ header .logo {
   background: #a78bfa;
   border-radius: 4px;
   box-shadow: 0 0 0 6px rgba(167, 139, 250, 0.25);
-  margin-right: 8px;
 }
 
 .gh-link {
