@@ -16,6 +16,15 @@
   // reload of *this tab* keeps the same identity, but two tabs of the same
   // browser still count and appear as two separate people.
   var explicitUid = scriptEl && scriptEl.getAttribute('data-uid');
+
+  var accent = (scriptEl && scriptEl.getAttribute('data-accent')) || '#eecf6d';
+  var surface = (scriptEl && scriptEl.getAttribute('data-surface')) || '#45050c';
+  function withAlpha(hex, alpha) {
+    var m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!m) return hex;
+    return 'rgba(' + parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16) + ',' + alpha + ')';
+  }
+
   var showBadge = !(scriptEl && scriptEl.getAttribute('data-badge') === 'false');
   var showCursors = !(scriptEl && scriptEl.getAttribute('data-cursors') === 'false');
   var showMessages = !(scriptEl && scriptEl.getAttribute('data-messages') === 'false');
@@ -57,17 +66,22 @@
   }
 
   function injectStyles() {
+    var border = withAlpha(accent, 0.55);
+    var glow = withAlpha(accent, 0.25);
+    var surfaceBubble = withAlpha(surface, 0.85);
+    var surfaceBadge = withAlpha(surface, 0.9);
+
     var style = document.createElement('style');
     style.textContent = [
       '.pwgt-overlay{position:fixed;inset:0;pointer-events:none;z-index:2147483000;overflow:hidden;}',
-      '.pwgt-dot{position:absolute;width:8px;height:8px;border-radius:50%;background:#d5ac4e;opacity:0.85;transform:translate(-50%,-50%);transition:left 60ms linear,top 60ms linear;}',
-      '.pwgt-dot.pwgt-me{background:#eecf6d;opacity:1;transition:none;}',
-      '.pwgt-bubble{position:absolute;transform:translate(-50%,-100%);color:#eecf6d;background:rgba(69,5,12,0.85);border:1px solid #8b6220;padding:4px 8px;border-radius:10px;font:12px/1.3 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:inline-block;width:max-content;max-width:240px;white-space:normal;word-wrap:break-word;pointer-events:none;}',
+      '.pwgt-dot{position:absolute;width:8px;height:8px;border-radius:50%;background:' + accent + ';opacity:0.85;transform:translate(-50%,-50%);transition:left 60ms linear,top 60ms linear;}',
+      '.pwgt-dot.pwgt-me{background:' + accent + ';opacity:1;transition:none;}',
+      '.pwgt-bubble{position:absolute;transform:translate(-50%,-100%);color:' + accent + ';background:' + surfaceBubble + ';border:1px solid ' + border + ';padding:4px 8px;border-radius:10px;font:12px/1.3 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:inline-block;width:max-content;max-width:240px;white-space:normal;word-wrap:break-word;pointer-events:none;}',
       '.pwgt-bubble.pwgt-hidden{display:none;}',
-      '.pwgt-badge{position:fixed;right:14px;bottom:14px;display:flex;align-items:center;gap:6px;background:rgba(69,5,12,0.9);color:#eecf6d;border:1px solid #8b6220;border-radius:999px;padding:6px 12px;font:600 12px/1 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;pointer-events:auto;z-index:2147483001;box-shadow:0 2px 10px rgba(0,0,0,0.25);text-decoration:none;}',
-      '.pwgt-badge .pwgt-led{width:7px;height:7px;border-radius:50%;background:#eecf6d;box-shadow:0 0 0 3px rgba(238,207,109,0.25);}',
+      '.pwgt-badge{position:fixed;right:14px;bottom:14px;display:flex;align-items:center;gap:6px;background:' + surfaceBadge + ';color:' + accent + ';border:1px solid ' + border + ';border-radius:999px;padding:6px 12px;font:600 12px/1 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;pointer-events:auto;z-index:2147483001;box-shadow:0 2px 10px rgba(0,0,0,0.25);text-decoration:none;}',
+      '.pwgt-badge .pwgt-led{width:7px;height:7px;border-radius:50%;background:' + accent + ';box-shadow:0 0 0 3px ' + glow + ';}',
       '.pwgt-mobile-bar{position:fixed;left:12px;right:12px;bottom:14px;display:flex;pointer-events:auto;z-index:2147483001;}',
-      '.pwgt-mobile-bar input{flex:1;min-width:0;border:1px solid #8b6220;border-radius:999px;padding:10px 14px;font:14px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:rgba(69,5,12,0.9);color:#eecf6d;outline:none;}',
+      '.pwgt-mobile-bar input{flex:1;min-width:0;border:1px solid ' + border + ';border-radius:999px;padding:10px 14px;font:14px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:' + surfaceBadge + ';color:' + accent + ';outline:none;}',
       '.pwgt-mobile-bar input::placeholder{color:#9ca3af;}',
     ].join('');
     document.head.appendChild(style);
