@@ -107,6 +107,7 @@ button.copy:hover {
   display: grid;
   gap: 10px;
   margin-top: 14px;
+  padding-inline-start: 0;
   color: #404040;
   font-size: 15px;
   line-height: 1.6;
