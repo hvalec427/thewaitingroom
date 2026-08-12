@@ -65,14 +65,14 @@
     return false;
   }
 
-  function injectStyles() {
+  var styleEl = null;
+  function buildStyleText() {
     var border = withAlpha(accent, 0.55);
     var glow = withAlpha(accent, 0.25);
     var surfaceBubble = withAlpha(surface, 0.85);
     var surfaceBadge = withAlpha(surface, 0.9);
 
-    var style = document.createElement('style');
-    style.textContent = [
+    return [
       '.pwgt-overlay{position:fixed;inset:0;pointer-events:none;z-index:2147483000;overflow:hidden;}',
       '.pwgt-dot{position:absolute;width:8px;height:8px;border-radius:50%;background:' + accent + ';opacity:0.85;transform:translate(-50%,-50%);transition:left 60ms linear,top 60ms linear;}',
       '.pwgt-dot.pwgt-me{background:' + accent + ';opacity:1;transition:none;}',
@@ -84,8 +84,20 @@
       '.pwgt-mobile-bar input{flex:1;min-width:0;border:1px solid ' + border + ';border-radius:999px;padding:10px 14px;font:14px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:' + surfaceBadge + ';color:' + accent + ';outline:none;}',
       '.pwgt-mobile-bar input::placeholder{color:#9ca3af;}',
     ].join('');
-    document.head.appendChild(style);
   }
+
+  function injectStyles() {
+    styleEl = document.createElement('style');
+    styleEl.textContent = buildStyleText();
+    document.head.appendChild(styleEl);
+  }
+
+  window.PresenceWidget = window.PresenceWidget || {};
+  window.PresenceWidget.setColors = function (newAccent, newSurface) {
+    if (newAccent) accent = newAccent;
+    if (newSurface) surface = newSurface;
+    if (styleEl) styleEl.textContent = buildStyleText();
+  };
 
   function build() {
     injectStyles();
