@@ -1,0 +1,130 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  background: #ffffff;
+  color: #0a0a0a;
+  overflow: hidden;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+.wrap {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 24px;
+  font-weight: 800;
+  font-size: 22px;
+}
+header .logo {
+  width: 14px;
+  height: 14px;
+  background: #a78bfa;
+  border-radius: 4px;
+  box-shadow: 0 0 0 6px rgba(167, 139, 250, 0.25);
+  margin-right: 8px;
+}
+
+main {
+  display: grid;
+  place-items: center;
+}
+.hero {
+  text-align: center;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 5vw;
+  display: grid;
+  gap: 8px;
+}
+.title {
+  font-size: clamp(36px, 6vw, 72px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.sub {
+  margin-top: 16px;
+  color: #404040;
+  font-size: clamp(16px, 2.2vw, 22px);
+  line-height: 1.6;
+}
+.presence-line {
+  margin-top: 8px;
+  font-size: 16px;
+  color: #6b7280;
+}
+.you-line {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #6b7280;
+}
+.refresh-warning {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.timer {
+  margin-top: 40px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #111827;
+  font-size: clamp(14px, 5vw, 48px);
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+.progress-wrap {
+  margin-top: 36px;
+  padding: 0 5vw;
+}
+.bar {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  position: relative;
+}
+.bar > i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  border-radius: 999px;
+  background: #a78bfa;
+}
+.sync {
+  text-align: center;
+  color: #6b7280;
+  margin-top: 10px;
+}
+
+.post-refresh {
+  position: fixed;
+  left: 50%;
+  top: 16px;
+  transform: translateX(-50%);
+  background: #111827;
+  color: #e5e7eb;
+  border: 1px solid #374151;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  display: none;
+  z-index: 10;
+  text-align: center;
+}
+.post-refresh.visible {
+  display: block;
+}

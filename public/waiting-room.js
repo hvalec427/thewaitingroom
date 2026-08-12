@@ -120,8 +120,8 @@ const PRESENCE_ORIGIN = 'https://presence.hvalec.com';
     if (last && now - last < SHOW_MS) {
       const el = document.getElementById('post-refresh');
       if (el) {
-        el.style.display = 'block';
-        setTimeout(() => { el.style.display = 'none'; }, 4000);
+        el.classList.add('visible');
+        setTimeout(() => { el.classList.remove('visible'); }, 4000);
       }
     }
     window.addEventListener('beforeunload', () => {

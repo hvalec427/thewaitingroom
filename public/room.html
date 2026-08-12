@@ -5,40 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Add Presence to {{ROOM}}</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <style>
-      html, body { min-height: 100%; margin: 0; background: #ffffff; color:#0a0a0a; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
-      a { color: inherit; }
-      header { display:flex; align-items:center; gap:10px; padding:18px 24px; font-weight:800; font-size:22px; }
-      header .logo { width:14px; height:14px; background:#a78bfa; border-radius:4px; box-shadow: 0 0 0 6px rgba(167,139,250,0.25); margin-right:8px; }
-      header a.home { text-decoration:none; color:#0a0a0a; display:flex; align-items:center; gap:10px; }
-      main { max-width: 720px; margin: 0 auto; padding: 24px 5vw 80px; }
-      .eyebrow { color:#7c3aed; font-weight:700; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; }
-      h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 800; letter-spacing: -0.02em; margin: 8px 0 4px; word-break: break-word; }
-      .sub { color:#404040; font-size: 17px; line-height: 1.6; margin-bottom: 28px; }
-      .step { margin-top: 36px; }
-      .step h2 { font-size: 15px; font-weight: 800; color:#111827; margin-bottom: 10px; }
-      .snippet-wrap { position: relative; }
-      pre.snippet { background:#0b1020; color:#e5e7eb; border:1px solid #1f2937; border-radius:10px; padding:16px 18px; font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x:auto; white-space: pre-wrap; word-break: break-all; }
-      pre.snippet .attr { color:#a78bfa; }
-      pre.snippet .str { color:#22d3ee; }
-      button.copy { position:absolute; top:10px; right:10px; background:#1f2937; color:#e5e7eb; border:1px solid #374151; border-radius:6px; padding:6px 10px; font-size:12px; font-weight:600; cursor:pointer; }
-      button.copy:hover { background:#374151; }
-      .features { display:grid; gap:10px; margin-top:14px; color:#404040; font-size:15px; line-height:1.6; }
-      .features li { margin-left: 18px; }
-      .demo-note { margin-top:10px; color:#6b7280; font-size:13px; }
-      .opt-table { width:100%; border-collapse:collapse; margin-top:14px; font-size:14px; }
-      .opt-table th { text-align:left; color:#111827; font-size:12px; text-transform:uppercase; letter-spacing:0.04em; padding-bottom:8px; border-bottom:1px solid #e5e7eb; }
-      .opt-table td { padding:10px 0; border-bottom:1px solid #f3f4f6; vertical-align:top; color:#404040; line-height:1.5; }
-      .opt-table code { background:#f3f4f6; border-radius:4px; padding:1px 6px; font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; color:#7c3aed; white-space:nowrap; }
-      pre.event-snippet { background:#0b1020; color:#e5e7eb; border:1px solid #1f2937; border-radius:10px; padding:14px 16px; font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x:auto; margin-top:14px; white-space:pre; }
-      pre.event-snippet .kw { color:#a78bfa; }
-      pre.event-snippet .str { color:#22d3ee; }
-      .demo-count { margin-top:10px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:#111827; }
-      .demo-count .led { width:7px; height:7px; border-radius:50%; background:#22d3ee; box-shadow:0 0 0 3px rgba(34,211,238,0.25); }
-      .back { display:inline-block; margin-top:48px; color:#7c3aed; text-decoration:none; font-weight:700; font-size:14px; }
-      .privacy-note { margin-top:20px; background:#fafafa; border:1px solid #e5e7eb; border-radius:10px; padding:12px 14px; color:#525252; font-size:13.5px; line-height:1.6; }
-      .privacy-note strong { color:#111827; }
-    </style>
+    <link rel="stylesheet" href="/room.css" />
   </head>
   <body>
     <header>
@@ -135,25 +102,7 @@
       <a class="back" href="/">&larr; Back home</a>
     </main>
 
-    <script>
-      (function () {
-        var btn = document.getElementById('copy-btn');
-        var text = '<script src="{{ORIGIN}}/widget.js" data-room="{{ROOM_ATTR}}" async><' + '/script>';
-        btn.addEventListener('click', function () {
-          navigator.clipboard && navigator.clipboard.writeText(text).then(function () {
-            btn.textContent = 'Copied!';
-            setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
-          });
-        });
-
-        var countEl = document.getElementById('room-count');
-        window.addEventListener('presence:update', function (e) {
-          var count = e.detail && e.detail.count;
-          if (typeof count !== 'number') return;
-          countEl.textContent = count + (count === 1 ? ' person here right now' : ' people here right now');
-        });
-      })();
-    </script>
+    <script src="/room.js"></script>
     <script src="{{ORIGIN}}/widget.js" data-room="{{ROOM_ATTR}}" async></script>
   </body>
 </html>

@@ -51,13 +51,31 @@ app.get('/waiting-room', (_req, res) => {
 });
 
 // Not served from the static public/ dir on purpose — only reachable while
-// the event is actually live, everyone else gets a plain 404.
+// the event is actually live, everyone else gets a plain 404. Its CSS/JS live
+// alongside it in secret/ and are gated the same way so they can't be probed
+// for ahead of time either.
 app.get('/celebration.html', (_req, res) => {
   if (!isCelebrationLive()) {
     res.status(404).end();
     return;
   }
   res.sendFile(path.join(__dirname, 'secret', 'celebration.html'));
+});
+
+app.get('/celebration.css', (_req, res) => {
+  if (!isCelebrationLive()) {
+    res.status(404).end();
+    return;
+  }
+  res.sendFile(path.join(__dirname, 'secret', 'celebration.css'));
+});
+
+app.get('/celebration.js', (_req, res) => {
+  if (!isCelebrationLive()) {
+    res.status(404).end();
+    return;
+  }
+  res.sendFile(path.join(__dirname, 'secret', 'celebration.js'));
 });
 
 // Get celebration countdown configuration
