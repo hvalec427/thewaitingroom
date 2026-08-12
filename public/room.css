@@ -2,7 +2,7 @@ html, body {
   min-height: 100%;
   margin: 0;
   background: #ffffff;
-  color: #0a0a0a;
+  color: #45050c;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 }
 a {
@@ -17,9 +17,9 @@ header {
 header .logo {
   width: 14px;
   height: 14px;
-  background: #a78bfa;
+  background: #d5ac4e;
   border-radius: 4px;
-  box-shadow: 0 0 0 6px rgba(167, 139, 250, 0.25);
+  box-shadow: 0 0 0 6px rgba(213, 172, 78, 0.25);
 }
 header a.home {
   display: flex;
@@ -36,7 +36,7 @@ main {
   padding: 24px 5vw 80px;
 }
 .eyebrow {
-  color: #7c3aed;
+  color: #8b6220;
   font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.06em;
@@ -62,7 +62,7 @@ h1 {
 .step h2 {
   font-size: 15px;
   font-weight: 800;
-  color: #111827;
+  color: #45050c;
   margin-bottom: 10px;
 }
 
@@ -70,9 +70,9 @@ h1 {
   position: relative;
 }
 pre.snippet {
-  background: #0b1020;
-  color: #e5e7eb;
-  border: 1px solid #1f2937;
+  background: #45050c;
+  color: #eecf6d;
+  border: 1px solid #8b6220;
   border-radius: 10px;
   padding: 16px 18px;
   font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -81,18 +81,18 @@ pre.snippet {
   word-break: break-all;
 }
 pre.snippet .attr {
-  color: #a78bfa;
+  color: #d5ac4e;
 }
 pre.snippet .str {
-  color: #22d3ee;
+  color: #eecf6d;
 }
 button.copy {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: #1f2937;
-  color: #e5e7eb;
-  border: 1px solid #374151;
+  background: #8b6220;
+  color: #eecf6d;
+  border: 1px solid #8b6220;
   border-radius: 6px;
   padding: 6px 10px;
   font-size: 12px;
@@ -100,7 +100,7 @@ button.copy {
   cursor: pointer;
 }
 button.copy:hover {
-  background: #374151;
+  background: #8b6220;
 }
 
 .features {
@@ -129,7 +129,7 @@ button.copy:hover {
 }
 .opt-table th {
   text-align: left;
-  color: #111827;
+  color: #45050c;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -148,14 +148,14 @@ button.copy:hover {
   border-radius: 4px;
   padding: 1px 6px;
   font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #7c3aed;
+  color: #8b6220;
   white-space: nowrap;
 }
 
 pre.event-snippet {
-  background: #0b1020;
-  color: #e5e7eb;
-  border: 1px solid #1f2937;
+  background: #45050c;
+  color: #eecf6d;
+  border: 1px solid #8b6220;
   border-radius: 10px;
   padding: 14px 16px;
   font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -164,10 +164,10 @@ pre.event-snippet {
   white-space: pre;
 }
 pre.event-snippet .kw {
-  color: #a78bfa;
+  color: #d5ac4e;
 }
 pre.event-snippet .str {
-  color: #22d3ee;
+  color: #eecf6d;
 }
 
 .demo-count {
@@ -177,36 +177,36 @@ pre.event-snippet .str {
   gap: 8px;
   font-size: 14px;
   font-weight: 700;
-  color: #111827;
+  color: #45050c;
 }
 .demo-count .led {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #22d3ee;
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.25);
+  background: #eecf6d;
+  box-shadow: 0 0 0 3px rgba(238, 207, 109, 0.25);
 }
 
 .back {
   display: inline-block;
   margin-top: 48px;
-  color: #7c3aed;
+  color: #8b6220;
   text-decoration: none;
   font-weight: 700;
   font-size: 14px;
 }
 
 .domain-tip {
-  background: #f5f3ff;
-  border: 1px solid #ddd6fe;
+  background: #eecf6d;
+  border: 1px solid #d5ac4e;
   border-radius: 10px;
   padding: 12px 14px;
-  color: #5b21b6;
+  color: #45050c;
   font-size: 13.5px;
   line-height: 1.6;
 }
 .domain-tip strong {
-  color: #6d28d9;
+  color: #720e07;
 }
 
 .privacy-note {
@@ -220,5 +220,5 @@ pre.event-snippet .str {
   line-height: 1.6;
 }
 .privacy-note strong {
-  color: #111827;
+  color: #45050c;
 }

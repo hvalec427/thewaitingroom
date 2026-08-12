@@ -23,7 +23,7 @@ function createSparkle(x, y) {
 }
 
 function createFirework() {
-  const colors = ['#a78bfa', '#22d3ee', '#f87171', '#34d399', '#fbbf24'];
+  const colors = ['#eecf6d', '#d5ac4e', '#8b6220', '#720e07', '#45050c'];
 
   for (let i = 0; i < 12; i++) {
     const firework = document.createElement('div');
@@ -105,7 +105,7 @@ function partyMode() {
       emoji.style.fontSize = 'clamp(1.5rem, 3vw, 2.5rem)';
       emoji.style.left = Math.random() * 100 + '%';
       emoji.style.top = '100%';
-      emoji.style.color = '#a78bfa';
+      emoji.style.color = '#d5ac4e';
       emoji.style.animation = 'gentleFall 5s linear forwards';
       emoji.style.pointerEvents = 'none';
       document.body.appendChild(emoji);

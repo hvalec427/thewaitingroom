@@ -2,7 +2,7 @@ html, body {
   height: 100%;
   margin: 0;
   background: #ffffff;
-  color: #0a0a0a;
+  color: #45050c;
   overflow: hidden;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -33,9 +33,9 @@ header a.home {
 header .logo {
   width: 14px;
   height: 14px;
-  background: #a78bfa;
+  background: #d5ac4e;
   border-radius: 4px;
-  box-shadow: 0 0 0 6px rgba(167, 139, 250, 0.25);
+  box-shadow: 0 0 0 6px rgba(213, 172, 78, 0.25);
 }
 
 main {
@@ -81,7 +81,7 @@ main {
   margin-top: 40px;
   font-weight: 800;
   letter-spacing: 0.03em;
-  color: #111827;
+  color: #45050c;
   font-size: clamp(14px, 5vw, 48px);
   line-height: 1.05;
   white-space: nowrap;
@@ -106,7 +106,7 @@ main {
   bottom: 0;
   width: 40px;
   border-radius: 999px;
-  background: #a78bfa;
+  background: #d5ac4e;
 }
 .sync {
   text-align: center;
@@ -119,9 +119,9 @@ main {
   left: 50%;
   top: 16px;
   transform: translateX(-50%);
-  background: #111827;
-  color: #e5e7eb;
-  border: 1px solid #374151;
+  background: #45050c;
+  color: #eecf6d;
+  border: 1px solid #8b6220;
   padding: 8px 12px;
   border-radius: 8px;
   font-size: 14px;

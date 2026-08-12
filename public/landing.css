@@ -2,7 +2,7 @@ html, body {
   min-height: 100%;
   margin: 0;
   background: #ffffff;
-  color: #0a0a0a;
+  color: #45050c;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 }
 a {
@@ -29,9 +29,9 @@ header a.home {
 header .logo {
   width: 14px;
   height: 14px;
-  background: #a78bfa;
+  background: #d5ac4e;
   border-radius: 4px;
-  box-shadow: 0 0 0 6px rgba(167, 139, 250, 0.25);
+  box-shadow: 0 0 0 6px rgba(213, 172, 78, 0.25);
 }
 
 .gh-link {
@@ -39,7 +39,7 @@ header .logo {
   align-items: center;
   gap: 7px;
   text-decoration: none;
-  color: #0a0a0a;
+  color: #45050c;
   background: #f3f4f6;
   border: 1px solid #e5e7eb;
   border-radius: 999px;
@@ -70,7 +70,7 @@ main {
   gap: 8px;
 }
 .eyebrow {
-  color: #7c3aed;
+  color: #8b6220;
   font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.08em;
@@ -91,17 +91,17 @@ main {
 
 .domain-tip {
   margin-top: 28px;
-  background: #f5f3ff;
-  border: 1px solid #ddd6fe;
+  background: #eecf6d;
+  border: 1px solid #d5ac4e;
   border-radius: 10px;
   padding: 12px 16px;
-  color: #5b21b6;
+  color: #45050c;
   font-size: 14px;
   line-height: 1.6;
   text-align: left;
 }
 .domain-tip strong {
-  color: #6d28d9;
+  color: #720e07;
 }
 
 .try {
@@ -119,14 +119,14 @@ main {
   font-size: 16px;
 }
 .try input:focus {
-  outline: 2px solid #a78bfa;
+  outline: 2px solid #d5ac4e;
   outline-offset: 1px;
 }
 .try button {
   padding: 14px 20px;
   border-radius: 10px;
   border: none;
-  background: linear-gradient(45deg, #a78bfa, #22d3ee);
+  background: linear-gradient(45deg, #d5ac4e, #eecf6d);
   color: white;
   font-weight: 800;
   font-size: 15px;
@@ -144,9 +144,9 @@ main {
 
 .snippet-preview {
   margin-top: 26px;
-  background: #0b1020;
-  color: #e5e7eb;
-  border: 1px solid #1f2937;
+  background: #45050c;
+  color: #eecf6d;
+  border: 1px solid #8b6220;
   border-radius: 10px;
   padding: 14px 18px;
   font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -156,10 +156,10 @@ main {
   overflow-x: auto;
 }
 .snippet-preview .attr {
-  color: #a78bfa;
+  color: #d5ac4e;
 }
 .snippet-preview .str {
-  color: #22d3ee;
+  color: #eecf6d;
 }
 
 .features {
@@ -180,7 +180,7 @@ main {
   width: 10px;
   height: 10px;
   border-radius: 3px;
-  background: #a78bfa;
+  background: #d5ac4e;
   margin-bottom: 14px;
 }
 .feature h3 {
