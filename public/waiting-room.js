@@ -1,15 +1,15 @@
-// The presence layer (badge, cursors, typing bubbles) is provided by the same
-// widget.js service every third-party site uses, always loaded from the
-// canonical presence.hvalec.com origin regardless of what host is currently
-// serving this page.
 const PRESENCE_ORIGIN = 'https://presence.hvalec.com';
 
 (function () {
-  // A fresh, unpersisted identity every page load: refreshing intentionally
-  // sends you to the back of the line, so we never reuse widget.js's normal
-  // persisted-uid behavior here.
-  const uid = Date.now() + Math.random().toString(36).slice(2, 10);
+  const widgetScript = document.getElementById('presence-widget');
+  if (widgetScript) {
+    const uid = Date.now() + Math.random().toString(36).slice(2, 10);
+    widgetScript.setAttribute('data-uid', uid);
+    widgetScript.src = `${PRESENCE_ORIGIN}/widget.js`;
+  }
+})();
 
+(function () {
   function plural(n) { return n === 1 ? 'person' : 'people'; }
   window.addEventListener('presence:update', (e) => {
     const { count, you } = e.detail || {};
@@ -22,14 +22,6 @@ const PRESENCE_ORIGIN = 'https://presence.hvalec.com';
       youEl.textContent = `You are #${you}`;
     }
   });
-
-  const widgetScript = document.createElement('script');
-  widgetScript.src = `${PRESENCE_ORIGIN}/widget.js`;
-  widgetScript.setAttribute('data-room', '__waiting-room__');
-  widgetScript.setAttribute('data-uid', uid);
-  widgetScript.setAttribute('data-badge', 'false');
-  widgetScript.async = true;
-  document.head.appendChild(widgetScript);
 })();
 
 (function () {
