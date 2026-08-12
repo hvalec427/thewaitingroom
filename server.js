@@ -17,6 +17,45 @@ app.set('trust proxy', true);
 app.use(cors());
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
+// --- Abuse prevention: per-IP rate limiting (no external deps) ---
+// Simple sliding-window counter per IP. Kept in-memory since this is a
+// single-process server; swept periodically so idle IPs don't leak memory.
+function makeRateLimiter({ windowMs, max, message }) {
+  const hitsByIp = new Map(); // ip -> timestamps[]
+
+  setInterval(() => {
+    const cutoff = Date.now() - windowMs;
+    for (const [ip, hits] of hitsByIp) {
+      const fresh = hits.filter((t) => t > cutoff);
+      if (fresh.length === 0) hitsByIp.delete(ip);
+      else hitsByIp.set(ip, fresh);
+    }
+  }, windowMs).unref();
+
+  return (req, res, next) => {
+    const ip = req.ip;
+    const now = Date.now();
+    const cutoff = now - windowMs;
+    const hits = (hitsByIp.get(ip) || []).filter((t) => t > cutoff);
+    if (hits.length >= max) {
+      res.set('Retry-After', String(Math.ceil(windowMs / 1000)));
+      res.status(429).json({ error: message || 'Too many requests' });
+      return;
+    }
+    hits.push(now);
+    hitsByIp.set(ip, hits);
+    next();
+  };
+}
+
+// Broad safety net for all dynamic routes (static assets are served above
+// and never reach this point).
+app.use(makeRateLimiter({ windowMs: 5 * 60_000, max: 300, message: 'Too many requests, please slow down.' }));
+
+// Tighter limit specifically on room-page generation, since each hit does a
+// disk read + string templating and can mint an arbitrary new room id.
+const roomPageLimiter = makeRateLimiter({ windowMs: 60_000, max: 20, message: 'Too many rooms requested, please slow down.' });
+
 const EVENT_MONTH = 0;
 const EVENT_DAY = 22;
 const EVENT_HOUR = 14;
@@ -136,7 +175,7 @@ const escapeHtml = (str) => String(str).replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]));
 
-app.get('/:room', (req, res, next) => {
+app.get('/:room', roomPageLimiter, (req, res, next) => {
   const room = req.params.room;
   if (RESERVED_SLUGS.has(room.toLowerCase()) || !ROOM_SLUG_RE.test(room)) {
     return next(); // fall through to 404
@@ -151,7 +190,9 @@ app.get('/:room', (req, res, next) => {
 });
 
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server, path: '/ws' });
+// maxPayload caps inbound WS frame size so a single message can't be used
+// to exhaust memory/bandwidth; legit payloads (mousemove/typing) are tiny.
+const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 4 * 1024 });
 
 // Presence state, namespaced per room so unrelated sites/rooms never see each other.
 const rooms = new Map(); // roomId -> { firstSeenByUid: Map, socketsByUid: Map }
@@ -163,6 +204,35 @@ const getRoomState = (roomId) => {
   }
   return state;
 };
+// Rooms otherwise live forever once created, so an attacker who keeps
+// connecting-then-disconnecting with fresh room ids could grow this Map
+// without bound. Sweep out rooms that have had nobody active for a while.
+const ROOM_EMPTY_TTL_MS = 5 * 60_000;
+setInterval(() => {
+  const cutoff = Date.now() - ROOM_EMPTY_TTL_MS;
+  for (const [roomId, state] of rooms) {
+    if (roomId === WAITING_ROOM_ID) continue;
+    if (activeCount(state) > 0) continue;
+    const lastSeen = Math.max(0, ...state.firstSeenByUid.values());
+    if (lastSeen < cutoff) rooms.delete(roomId);
+  }
+}, ROOM_EMPTY_TTL_MS).unref();
+
+// --- Abuse prevention: cap concurrent WS connections per IP ---
+// Prevents one client from inflating presence counts or exhausting server
+// resources by opening large numbers of sockets.
+const MAX_WS_CONNECTIONS_PER_IP = 5;
+const wsConnectionsByIp = new Map(); // ip -> Set<ws>
+const getWsIp = (req) => {
+  const xff = req.headers['x-forwarded-for'];
+  if (xff) return xff.split(',')[0].trim();
+  return req.socket.remoteAddress;
+};
+
+// Per-socket inbound message rate limit, independent of connection count,
+// so a single open tab can't flood the room with mousemove/typing spam.
+const WS_MSG_WINDOW_MS = 1000;
+const WS_MSG_MAX_PER_WINDOW = 40;
 
 const getActiveUids = (state) => Array.from(state.socketsByUid.entries())
   .filter(([_u, set]) => set.size > 0)
@@ -182,6 +252,22 @@ const broadcastRoom = (roomId, obj) => {
 };
 
 wss.on('connection', (ws, req) => {
+  const ip = getWsIp(req);
+  let ipConns = wsConnectionsByIp.get(ip);
+  if (!ipConns) {
+    ipConns = new Set();
+    wsConnectionsByIp.set(ip, ipConns);
+  }
+  if (ipConns.size >= MAX_WS_CONNECTIONS_PER_IP) {
+    ws.close(1008, 'Too many connections from this IP');
+    return;
+  }
+  ipConns.add(ws);
+  ws.on('close', () => {
+    ipConns.delete(ws);
+    if (ipConns.size === 0) wsConnectionsByIp.delete(ip);
+  });
+
   const url = new URL(req.url, 'http://localhost');
   const roomId = (url.searchParams.get('room') || WAITING_ROOM_ID).slice(0, 128);
   const uid = url.searchParams.get('uid') || (Date.now() + Math.random().toString(36).slice(2, 8));
@@ -218,7 +304,13 @@ wss.on('connection', (ws, req) => {
     });
   };
 
+  ws._msgTimestamps = [];
   ws.on('message', (data) => {
+    const now = Date.now();
+    ws._msgTimestamps = ws._msgTimestamps.filter((t) => now - t < WS_MSG_WINDOW_MS);
+    if (ws._msgTimestamps.length >= WS_MSG_MAX_PER_WINDOW) return; // drop, sender is over the limit
+    ws._msgTimestamps.push(now);
+
     let msg;
     try {
       msg = JSON.parse(data);
