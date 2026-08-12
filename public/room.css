@@ -196,8 +196,21 @@ pre.event-snippet .str {
   font-size: 14px;
 }
 
+.domain-tip {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #5b21b6;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.domain-tip strong {
+  color: #6d28d9;
+}
+
 .privacy-note {
-  margin-top: 20px;
+  margin-top: 12px;
   background: #fafafa;
   border: 1px solid #e5e7eb;
   border-radius: 10px;

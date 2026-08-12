@@ -41,6 +41,10 @@ telling someone the room name. There is no server-side rendering per room
 beyond the setup page; state lives in memory per room and resets on server
 restart.
 
+Since nothing is reserved or verified, the convention is to use your own
+domain as the room name — it's already unique to you, so it's an easy way to
+avoid colliding with someone else's room.
+
 ### Widget options
 
 The `<script>` tag also accepts:

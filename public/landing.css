@@ -89,6 +89,21 @@ main {
   line-height: 1.6;
 }
 
+.domain-tip {
+  margin-top: 28px;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: #5b21b6;
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: left;
+}
+.domain-tip strong {
+  color: #6d28d9;
+}
+
 .try {
   margin-top: 32px;
   width: 100%;
