@@ -98,6 +98,10 @@
             <td>Turns off typed message bubbles entirely — typing on the page is never captured or sent, and no one's messages are shown. Visitor count and cursors still work.</td>
           </tr>
           <tr>
+            <td><code>data-mobile="true"</code></td>
+            <td>Cursors and messages are off by default on touchscreens (dragging a dot around doesn't translate well to a finger). Set this to turn them back on. Cursors follow touch drags, and typing gets a small tap-to-type bar at the bottom of the screen instead of the desktop-style ambient capture.</td>
+          </tr>
+          <tr>
             <td><code>data-uid="…"</code></td>
             <td>Overrides the visitor identity. By default the widget stores a stable id in <code>sessionStorage</code> — the same browser tab keeps its identity across reloads, but a new tab (or a new visitor) is always counted separately. Set this only if your page needs to control that identity itself (for example, to intentionally give someone a fresh identity on every reload).</td>
           </tr>

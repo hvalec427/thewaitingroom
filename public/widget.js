@@ -19,6 +19,19 @@
   var showBadge = !(scriptEl && scriptEl.getAttribute('data-badge') === 'false');
   var showCursors = !(scriptEl && scriptEl.getAttribute('data-cursors') === 'false');
   var showMessages = !(scriptEl && scriptEl.getAttribute('data-messages') === 'false');
+
+  // Cursors and typing are ambient, mouse/keyboard-driven features that don't
+  // translate well to a touchscreen, so they're off by default on mobile.
+  // Pass data-mobile="true" to opt back in (cursors follow touch drags, and
+  // messages get a small tap-to-type bar instead of global key capture).
+  var isMobile = (function () {
+    try { return matchMedia('(pointer: coarse)').matches; } catch (e) { return 'ontouchstart' in window; }
+  })();
+  var mobileEnabled = scriptEl && scriptEl.getAttribute('data-mobile') === 'true';
+  if (isMobile && !mobileEnabled) {
+    showCursors = false;
+    showMessages = false;
+  }
   var UID_KEY = 'presence_widget_uid';
   var uid = explicitUid;
   if (!uid) {
@@ -53,6 +66,9 @@
       '.pwgt-bubble.pwgt-hidden{display:none;}',
       '.pwgt-badge{position:fixed;right:14px;bottom:14px;display:flex;align-items:center;gap:6px;background:rgba(17,24,39,0.9);color:#e5e7eb;border:1px solid #374151;border-radius:999px;padding:6px 12px;font:600 12px/1 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;pointer-events:auto;z-index:2147483001;box-shadow:0 2px 10px rgba(0,0,0,0.25);text-decoration:none;}',
       '.pwgt-badge .pwgt-led{width:7px;height:7px;border-radius:50%;background:#22d3ee;box-shadow:0 0 0 3px rgba(34,211,238,0.25);}',
+      '.pwgt-mobile-bar{position:fixed;left:12px;right:12px;bottom:14px;display:flex;pointer-events:auto;z-index:2147483001;}',
+      '.pwgt-mobile-bar input{flex:1;min-width:0;border:1px solid #374151;border-radius:999px;padding:10px 14px;font:14px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:rgba(17,24,39,0.9);color:#e5e7eb;outline:none;}',
+      '.pwgt-mobile-bar input::placeholder{color:#9ca3af;}',
     ].join('');
     document.head.appendChild(style);
   }
@@ -176,14 +192,14 @@
     }
     connect();
 
-    document.addEventListener('mousemove', function (e) {
-      var x = e.clientX / window.innerWidth;
-      var y = e.clientY / window.innerHeight;
+    function handlePointerMove(clientX, clientY) {
+      var x = clientX / window.innerWidth;
+      var y = clientY / window.innerHeight;
       lastPos = { x: x, y: y };
       if (showCursors) {
         myDot.style.display = '';
-        myDot.style.left = e.clientX + 'px';
-        myDot.style.top = e.clientY + 'px';
+        myDot.style.left = clientX + 'px';
+        myDot.style.top = clientY + 'px';
         if (ws && ws.readyState === ws.OPEN) {
           ws.send(JSON.stringify({ type: 'mousemove', x: x, y: y }));
         }
@@ -192,7 +208,15 @@
         placeMyBubble(x, y);
         sendTyping();
       }
+    }
+
+    document.addEventListener('mousemove', function (e) {
+      handlePointerMove(e.clientX, e.clientY);
     });
+    document.addEventListener('touchmove', function (e) {
+      if (!showCursors || e.touches.length === 0) return;
+      handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
 
     var typingText = '';
     var lastTypedAt = 0;
@@ -207,7 +231,8 @@
       }
     }
 
-    if (showMessages) {
+    if (showMessages && !isMobile) {
+      // Desktop: capture typing ambiently anywhere on the page.
       document.addEventListener('keydown', function (e) {
         // Never hijack typing inside the host page's own form fields.
         if (isEditableTarget(e.target)) return;
@@ -227,7 +252,30 @@
         lastTypedAt = Date.now();
         sendTyping();
       });
+    } else if (showMessages && isMobile) {
+      // Mobile: there's no ambient keyboard, so give a small tap-to-type bar.
+      var bar = document.createElement('div');
+      bar.className = 'pwgt-mobile-bar';
+      if (showBadge) bar.style.bottom = '58px'; // stack above the visitor-count badge
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = 280;
+      input.placeholder = 'Type a message…';
+      bar.appendChild(input);
+      document.body.appendChild(bar);
+      input.addEventListener('input', function () {
+        typingText = input.value;
+        lastTypedAt = Date.now();
+        sendTyping();
+      });
+      input.addEventListener('blur', function () {
+        typingText = '';
+        input.value = '';
+        sendTyping();
+      });
+    }
 
+    if (showMessages) {
       setInterval(function () {
         if (typingText && Date.now() - lastTypedAt >= INACTIVITY_TTL_MS) {
           typingText = '';
